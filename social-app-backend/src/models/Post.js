@@ -8,13 +8,17 @@ const postSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['text', 'image', 'video', 'poll', 'thread'],
+        enum: ['text', 'image', 'video', 'poll', 'thread', 'repost'],
         default: 'text',
         required: true
     },
     content: {
         type: String, // Can be text, or URL for image/video
-        required: true
+        required: false // Reposts might not have extra text content initially
+    },
+    originalPost: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post'
     },
     poll: {
         question: String,

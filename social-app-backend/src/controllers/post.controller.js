@@ -55,7 +55,12 @@ exports.createPost = async (req, res) => {
         });
 
         await newPost.save();
-        res.status(201).json(newPost);
+
+        // Populate author to match feed item shape for seamless frontend insertion
+        const populatedPost = await Post.findById(newPost._id)
+            .populate('author', 'email _id name avatar');
+
+        res.status(201).json(populatedPost);
     } catch (error) {
         console.error('Error creating post:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
@@ -76,7 +81,11 @@ exports.getFeed = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
-            .populate('author', 'email _id') // Adjust depending on user fields available
+            .populate('author', 'email _id name avatar')
+            .populate({
+                path: 'originalPost',
+                populate: { path: 'author', select: 'email _id name avatar' }
+            })
             .exec();
 
         res.status(200).json(posts);
@@ -212,6 +221,131 @@ exports.getComments = async (req, res) => {
         res.status(200).json(rootComments);
     } catch (error) {
         console.error('Error fetching comments:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Repost a post
+exports.repostPost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+        const content = req.body.content || ''; // Optional quote quote for the repost
+
+        // Check if original post exists
+        const originalPost = await Post.findById(id);
+        if (!originalPost) {
+            return res.status(404).json({ message: 'Original post not found' });
+        }
+
+        // Check if user already reposted this exact post (prevent spam)
+        const existingRepost = await Post.findOne({
+            author: userId,
+            type: 'repost',
+            originalPost: id
+        });
+
+        if (existingRepost) {
+            return res.status(400).json({ message: 'You have already reposted this post' });
+        }
+
+        // Create the repost entry
+        const newRepost = await Post.create({
+            author: userId,
+            type: 'repost',
+            content: content,
+            originalPost: id,
+            community: originalPost.community || 'General' // keep it in same community realm
+        });
+
+        // Increment the repost count on the original post
+        await Post.findByIdAndUpdate(id, { $inc: { 'engagementCount.reposts': 1 } });
+
+        // Also log the engagement for history/analytics
+        await Engagement.create({
+            post: id,
+            user: userId,
+            type: 'repost'
+        });
+
+        const populatedRepost = await Post.findById(newRepost._id)
+            .populate('author', 'name email avatar')
+            .populate({
+                path: 'originalPost',
+                populate: { path: 'author', select: 'name email avatar' }
+            });
+
+        res.status(201).json(populatedRepost);
+
+    } catch (error) {
+        console.error('Error in repostPost:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Delete a post
+exports.deletePost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        const post = await Post.findById(id);
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Check if the user is the author
+        if (post.author.toString() !== userId) {
+            return res.status(403).json({ message: 'Not authorized to delete this post' });
+        }
+
+        // Delete associated engagements (likes, comments, etc)
+        await Engagement.deleteMany({ post: id });
+
+        // If this post is a repost of something, we don't need to do anything tricky,
+        // but if we wanted to decrement the original post's repost count, we could do it here
+        if (post.type === 'repost' && post.originalPost) {
+            await Post.findByIdAndUpdate(post.originalPost, { $inc: { 'engagementCount.reposts': -1 } });
+        }
+
+        await post.deleteOne();
+
+        res.status(200).json({ message: 'Post deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Update a post
+exports.updatePost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+        const { content } = req.body;
+
+        const post = await Post.findById(id);
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Check if the user is the author
+        if (post.author.toString() !== userId) {
+            return res.status(403).json({ message: 'Not authorized to update this post' });
+        }
+
+        // Only allow text/content updates for now (poll editing usually not allowed)
+        post.content = content !== undefined ? content : post.content;
+
+        await post.save();
+
+        const populatedPost = await Post.findById(post._id).populate('author', 'email _id name avatar');
+
+        res.status(200).json(populatedPost);
+    } catch (error) {
+        console.error('Error updating post:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };

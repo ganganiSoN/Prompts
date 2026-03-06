@@ -65,6 +65,19 @@ export const engageWithPost = async (postId: string, type: string, content?: str
     return response.json();
 };
 
+export const repostPost = async (postId: string, content?: string) => {
+    const response = await fetch(`${API_URL}/${postId}/repost`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to repost');
+    }
+    return response.json();
+};
+
 export const getPostComments = async (postId: string) => {
     const response = await fetch(`${API_URL}/${postId}/comments`, {
         method: 'GET',
@@ -73,6 +86,31 @@ export const getPostComments = async (postId: string) => {
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch comments');
+    }
+    return response.json();
+};
+
+export const deletePost = async (postId: string) => {
+    const response = await fetch(`${API_URL}/${postId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete post');
+    }
+    return response.json();
+};
+
+export const updatePost = async (postId: string, content: string) => {
+    const response = await fetch(`${API_URL}/${postId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ content })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update post');
     }
     return response.json();
 };
