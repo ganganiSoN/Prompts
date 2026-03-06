@@ -11,6 +11,9 @@ import ProfilePage from './components/profile/ProfilePage';
 import EditProfilePage from './components/profile/EditProfilePage';
 import SettingsPage from './components/settings/SettingsPage';
 import { Feed } from './components/feed/Feed';
+import CommunityPage from './components/community/CommunityPage';
+import CreateCommunityPage from './components/community/CreateCommunityPage';
+import CommunityDetailsPage from './components/community/CommunityDetailsPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -39,6 +42,9 @@ const AppRoutes = () => {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="community" element={<CommunityPage />} />
+        <Route path="community/create" element={<CreateCommunityPage />} />
+        <Route path="community/:id" element={<CommunityDetailsPage />} />
       </Route>
     </Routes>
   );

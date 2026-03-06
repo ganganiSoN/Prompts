@@ -13,9 +13,16 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
-app.use('/api/auth', require('./src/routes/authRoutes'));
-app.use('/api/users', require('./src/routes/user.routes'));
-app.use('/api/posts', require('./src/routes/post.routes'));
+const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/user.routes');
+const postRoutes = require('./src/routes/post.routes');
+const communityRoutes = require('./src/routes/community.routes');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/communities', communityRoutes);
+app.use('/api/posts', postRoutes);
+
 
 // Initialize Background Jobs
 require('./src/jobs/post.jobs');
