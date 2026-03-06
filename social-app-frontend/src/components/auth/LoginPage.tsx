@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Github, CheckCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginApi, verifyMfaApi } from '../../api/auth';
 
@@ -13,11 +14,10 @@ const LoginPage = () => {
     const [mfaCode, setMfaCode] = useState('');
     const [tempMfaToken, setTempMfaToken] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorObj, setErrorObj] = useState<string | null>(null);
+    const { success, error: showError } = useToast();
 
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
         if (!email || !password) return;
         setIsSubmitting(true);
 
@@ -28,10 +28,11 @@ const LoginPage = () => {
                 setIsMfaStep(true);
             } else if (data.token) {
                 authenticate(data.user, data.token);
+                success('Logged in successfully!');
                 navigate('/');
             }
         } catch (err: any) {
-            setErrorObj(err.message || 'Login failed');
+            showError(err.message || 'Login failed');
         } finally {
             setIsSubmitting(false);
         }
@@ -39,16 +40,16 @@ const LoginPage = () => {
 
     const handleOAuthLogin = async (provider: string) => {
         // Quick mock for implicit testing
-        setErrorObj(null);
         setIsSubmitting(true);
         try {
             const data = await loginApi({ email: `${provider}@example.com`, authProvider: provider });
             if (data.token) {
                 authenticate(data.user, data.token);
+                success('Logged in successfully!');
                 navigate('/');
             }
         } catch (err: any) {
-            setErrorObj(err.message || 'OAuth Login failed');
+            showError(err.message || 'OAuth Login failed');
         } finally {
             setIsSubmitting(false);
         }
@@ -56,7 +57,6 @@ const LoginPage = () => {
 
     const handleMfaSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
         if (mfaCode.length < 6) return;
         setIsSubmitting(true);
 
@@ -64,10 +64,11 @@ const LoginPage = () => {
             const data = await verifyMfaApi({ tempToken: tempMfaToken, mfaCode });
             if (data.token) {
                 authenticate(data.user, data.token);
+                success('MFA verified successfully!');
                 navigate('/');
             }
         } catch (err: any) {
-            setErrorObj(err.message || 'MFA Verification failed');
+            showError(err.message || 'MFA Verification failed');
         } finally {
             setIsSubmitting(false);
         }
@@ -80,8 +81,6 @@ const LoginPage = () => {
                     <h2 className="text-2xl font-bold">{isMfaStep ? 'Two-Factor Authentication' : 'Welcome Back'}</h2>
                     <p className="mt-2">{isMfaStep ? 'Enter the code sent to your device' : 'Enter your details to access your account'}</p>
                 </div>
-
-                {errorObj && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center' }}>{errorObj}</div>}
 
                 {!isMfaStep ? (
                     <>

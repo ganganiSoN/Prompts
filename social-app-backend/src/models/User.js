@@ -9,6 +9,23 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true,
     },
+    name: {
+        type: String,
+        trim: true,
+    },
+    bio: {
+        type: String,
+        trim: true,
+        maxLength: 500
+    },
+    website: {
+        type: String,
+        trim: true
+    },
+    location: {
+        type: String,
+        trim: true
+    },
     password: {
         type: String,
         required: function () {

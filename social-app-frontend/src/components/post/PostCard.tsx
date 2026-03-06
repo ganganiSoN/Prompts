@@ -10,6 +10,7 @@ import {
     CalendarClock
 } from 'lucide-react';
 import { engageWithPost } from '../../api/posts';
+import { useToast } from '../../context/ToastContext';
 import { CommentSection } from './CommentSection';
 
 interface PostProps {
@@ -21,6 +22,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
     const [isLiked, setIsLiked] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [showComments, setShowComments] = useState(false);
+    const { error: showError, success } = useToast();
 
     // Quick parse for simple media URLs in content (fallback)
     const renderContent = () => {
@@ -101,8 +103,10 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             if (type === 'like') setIsLiked(!isLiked);
             if (type === 'bookmark') setIsBookmarked(!isBookmarked);
 
-        } catch (error) {
-            console.error(error);
+            if (type === 'share') success('Post shared successfully!');
+
+        } catch (error: any) {
+            showError(error.message || `Failed to ${type} post`);
         }
     };
 

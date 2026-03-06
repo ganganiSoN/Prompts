@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import { createPost } from '../../api/posts';
+import { useToast } from '../../context/ToastContext';
 import { RichTextEditor } from './RichTextEditor';
 import type { PostPayload } from './RichTextEditor';
 
@@ -13,6 +14,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [community, setCommunity] = useState('');
+    const { success, error: showError } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,9 +53,11 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
             // Reset
             setPayload({ content: '' });
             setCommunity('');
+            success(backendPostData.isScheduled ? 'Post scheduled successfully!' : 'Post published successfully!');
             onPostCreated(newPost);
         } catch (err: any) {
             setError(err.message);
+            showError(err.message || 'Failed to publish post');
         } finally {
             setIsSubmitting(false);
         }

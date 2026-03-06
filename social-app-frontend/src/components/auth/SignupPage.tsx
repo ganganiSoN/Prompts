@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { signupApi, verifyEmailApi } from '../../api/auth';
 
@@ -15,11 +16,10 @@ const SignupPage = () => {
     const [isVerificationStep, setIsVerificationStep] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorObj, setErrorObj] = useState<string | null>(null);
+    const { success, error: showError } = useToast();
 
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
         if (!email || !password || !hasAcceptedTerms || !hasVerifiedAge) return;
         setIsSubmitting(true);
         try {
@@ -29,9 +29,10 @@ const SignupPage = () => {
                 hasAcceptedTerms,
                 hasVerifiedAge
             });
+            success('Account created! Please check your email.');
             setIsVerificationStep(true);
         } catch (err: any) {
-            setErrorObj(err.message || 'Failed to register');
+            showError(err.message || 'Failed to register');
         } finally {
             setIsSubmitting(false);
         }
@@ -39,7 +40,6 @@ const SignupPage = () => {
 
     const handleVerificationSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
         if (!verificationCode) return;
 
         setIsSubmitting(true);
@@ -47,12 +47,14 @@ const SignupPage = () => {
             const data = await verifyEmailApi({ token: verificationCode, email });
             if (data.token) {
                 authenticate({ id: 'temp', email: email, name: email.split('@')[0] }, data.token); // Mock user obj for now
+                success('Email verified successfully!');
                 navigate('/');
             } else {
+                success('Verification successful! Please log in.');
                 navigate('/login');
             }
         } catch (err: any) {
-            setErrorObj(err.message || 'Invalid verification code');
+            showError(err.message || 'Invalid verification code');
         } finally {
             setIsSubmitting(false);
         }
@@ -65,8 +67,6 @@ const SignupPage = () => {
                     <h2 className="text-2xl font-bold">{isVerificationStep ? 'Verify Your Email' : 'Create an Account'}</h2>
                     <p className="mt-2">{isVerificationStep ? `We sent a code to ${email}` : 'Join our community today'}</p>
                 </div>
-
-                {errorObj && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center' }}>{errorObj}</div>}
 
                 {!isVerificationStep ? (
                     <>

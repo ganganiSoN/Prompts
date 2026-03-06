@@ -4,6 +4,9 @@ interface User {
     id: string;
     email: string;
     name: string;
+    bio?: string;
+    website?: string;
+    location?: string;
 }
 
 interface AuthContextType {
@@ -13,6 +16,7 @@ interface AuthContextType {
     logout: () => void;
     signup: (email: string) => void;
     authenticate: (userData: User, token: string) => void;
+    updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +35,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('token', token);
     };
 
+    const updateUser = (userData: Partial<User>) => {
+        if (user) {
+            const updatedUser = { ...user, ...userData };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
@@ -46,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 logout,
                 signup: () => { console.warn('Use actual api implementation in component'); },
                 authenticate,
+                updateUser,
             }}
         >
             {children}
@@ -60,3 +73,4 @@ export const useAuth = () => {
     }
     return context;
 };
+
