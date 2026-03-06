@@ -1085,6 +1085,20 @@ p {
   margin-bottom: 1.25rem;
 }
 
+.rich-text-content {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .post-media-container {
   border-radius: 0.75rem;
   overflow: hidden;

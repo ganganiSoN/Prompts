@@ -41,7 +41,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
                 : payload.content;
 
             const backendPostData = {
-                type: resolvedType,
+                type: resolvedType.toLowerCase(),
                 content: stringifiedContent,
                 poll: payload.poll?.question ? payload.poll : undefined,
                 community: defaultCommunity || community || 'General',

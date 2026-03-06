@@ -30,9 +30,35 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
     const [showComments, setShowComments] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [editPayload, setEditPayload] = useState<PostPayload>({ content: post.content || '' });
     const [isDeleted, setIsDeleted] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const getInitialEditPayload = () => {
+        let content = post.content || '';
+        let mediaUrl = undefined;
+        let mediaType = undefined;
+
+        if (post.type === 'image' || post.type === 'video') {
+            const lines = content.split('\n');
+            if (lines.length > 1 && (lines[lines.length - 1].startsWith('data:') || lines[lines.length - 1].startsWith('http'))) {
+                mediaUrl = lines.pop(); // Remove the url from content
+                content = lines.join('\n');
+            } else if (content.startsWith('data:') || content.startsWith('http')) {
+                mediaUrl = content;
+                content = '';
+            }
+            mediaType = post.type;
+        }
+
+        return {
+            content,
+            mediaUrl,
+            mediaType,
+            poll: post.type === 'poll' ? post.poll : undefined
+        } as PostPayload;
+    };
+
+    const [editPayload, setEditPayload] = useState<PostPayload>(getInitialEditPayload());
 
     const { error: showError, success } = useToast();
     const { user } = useAuth();
@@ -80,20 +106,31 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             );
         }
         if (post.type === 'image' || post.type === 'video') {
-            const lines = post.content.split('\n');
-            const mediaUrl = lines.pop(); // Assume last line is URL from our CreatePost
-            const textContent = lines.join('\n');
+            const lines = (post.content || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
+
+            // Look for the media URL specifically (starts with data: or http)
+            const mediaUrlIndex = lines.findIndex((l: string) => l.startsWith('data:') || l.startsWith('http'));
+            let mediaUrl = '';
+            let textContent = post.content || '';
+
+            if (mediaUrlIndex !== -1) {
+                mediaUrl = lines[mediaUrlIndex];
+                // Remove the URL line from the original content
+                textContent = lines.filter((_: any, idx: number) => idx !== mediaUrlIndex).join('<br />');
+            }
 
             return (
                 <div className="mt-3">
                     {textContent && <div className="text-gray-800 dark:text-gray-100 mb-3 whitespace-pre-wrap rich-text-content" dangerouslySetInnerHTML={{ __html: textContent }} />}
-                    <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800">
-                        {post.type === 'image' ? (
-                            <img src={mediaUrl} alt="Post content" className="w-full object-cover max-h-[500px]" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                        ) : (
-                            <video src={mediaUrl} controls className="w-full max-h-[500px]" />
-                        )}
-                    </div>
+                    {mediaUrl && (
+                        <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 relative">
+                            {post.type === 'image' ? (
+                                <img src={mediaUrl} alt="Attached content" className="w-full object-contain max-h-[600px] mx-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                            ) : (
+                                <video src={mediaUrl} controls className="w-full max-h-[600px] object-contain mx-auto block" />
+                            )}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -374,7 +411,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                             style={{ padding: '0.4rem 1.25rem', width: 'auto', fontSize: '0.875rem' }}
                             onClick={() => {
                                 setIsEditing(false);
-                                setEditPayload({ content: post.content });
+                                setEditPayload(getInitialEditPayload());
                             }}
                         >
                             Cancel

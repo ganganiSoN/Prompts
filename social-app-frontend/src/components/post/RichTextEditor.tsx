@@ -139,13 +139,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 <div className="px-5 pb-2">
                     {/* Media Block Preview */}
                     {showMediaInput && (
-                        <div className="media-input-wrapper group/media">
-                            <button
-                                onClick={removeMedia}
-                                className="media-close-btn opacity-0 group-hover/media:opacity-100"
-                            >
-                                <X size={14} />
-                            </button>
+                        <div className="media-input-wrapper group/media relative">
+                            {value.mediaUrl && (
+                                <button
+                                    onClick={removeMedia}
+                                    className="absolute top-2 right-2 p-1.5 bg-gray-900/60 hover:bg-red-500 text-white rounded-full transition-all z-20 shadow-sm border border-white/20"
+                                    title="Remove Media"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
 
                             {!value.mediaUrl ? (
                                 <div className="media-input-container">
