@@ -52,15 +52,27 @@ export const getFeed = async (page = 1, limit = 20, community?: string) => {
     return response.json();
 };
 
-export const engageWithPost = async (postId: string, type: string, content?: string) => {
+export const engageWithPost = async (postId: string, type: string, content?: string, parentEngagementId?: string) => {
     const response = await fetch(`${API_URL}/${postId}/engage`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ type, content })
+        body: JSON.stringify({ type, content, parentEngagementId })
     });
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to engage with post');
+    }
+    return response.json();
+};
+
+export const getPostComments = async (postId: string) => {
+    const response = await fetch(`${API_URL}/${postId}/comments`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch comments');
     }
     return response.json();
 };

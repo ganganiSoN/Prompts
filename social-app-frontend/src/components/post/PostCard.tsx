@@ -10,6 +10,7 @@ import {
     CalendarClock
 } from 'lucide-react';
 import { engageWithPost } from '../../api/posts';
+import { CommentSection } from './CommentSection';
 
 interface PostProps {
     post: any;
@@ -19,6 +20,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
     const [counts, setCounts] = useState(post.engagementCount || { likes: 0, comments: 0, reposts: 0, bookmarks: 0, shares: 0 });
     const [isLiked, setIsLiked] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [showComments, setShowComments] = useState(false);
 
     // Quick parse for simple media URLs in content (fallback)
     const renderContent = () => {
@@ -156,8 +158,8 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             {renderContent()}
 
             <div className="post-actions">
-                <button onClick={(e) => { e.stopPropagation(); handleEngage('comment'); }} className="post-action-btn comment">
-                    <div className="post-action-icon">
+                <button onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} className={`post-action-btn comment ${showComments ? 'text-indigo-500' : ''}`}>
+                    <div className={`post-action-icon ${showComments ? 'bg-indigo-500/10' : ''}`}>
                         <MessageSquare size={18} />
                     </div>
                     <span>{counts.comments || 0}</span>
@@ -189,6 +191,11 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                     </div>
                 </button>
             </div>
+
+            {/* Comment Section Expand/Collapse */}
+            {showComments && (
+                <CommentSection postId={post._id} />
+            )}
         </div>
     );
 };
