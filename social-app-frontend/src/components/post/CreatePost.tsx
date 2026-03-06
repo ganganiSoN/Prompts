@@ -7,13 +7,14 @@ import type { PostPayload } from './RichTextEditor';
 
 interface CreatePostProps {
     onPostCreated: (post: any) => void;
+    defaultCommunity?: string;
 }
 
-export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
+export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCommunity }) => {
     const [payload, setPayload] = useState<PostPayload>({ content: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [community, setCommunity] = useState('');
+    const [community, setCommunity] = useState(defaultCommunity || '');
     const { success, error: showError } = useToast();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +44,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
                 type: resolvedType,
                 content: stringifiedContent,
                 poll: payload.poll?.question ? payload.poll : undefined,
-                community: community || 'General',
+                community: defaultCommunity || community || 'General',
                 isScheduled: !!payload.scheduledFor,
                 scheduledFor: payload.scheduledFor
             };
@@ -52,7 +53,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
 
             // Reset
             setPayload({ content: '' });
-            setCommunity('');
+            setCommunity(defaultCommunity || '');
             success(backendPostData.isScheduled ? 'Post scheduled successfully!' : 'Post published successfully!');
             onPostCreated(newPost);
         } catch (err: any) {
@@ -84,16 +85,22 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
 
                         {/* Submission Row */}
                         <div className="flex justify-between items-center mt-6 pl-1 mb-2">
-                            <select
-                                className="post-action-select"
-                                value={community}
-                                onChange={(e) => setCommunity(e.target.value)}
-                            >
-                                <option value="">🌐 General Feed</option>
-                                <option value="Finance">📈 Finance</option>
-                                <option value="Tech">💻 Tech</option>
-                                <option value="Gaming">🎮 Gaming</option>
-                            </select>
+
+                            {!defaultCommunity ? (
+                                <select
+                                    className="post-action-select"
+                                    value={community}
+                                    onChange={(e) => setCommunity(e.target.value)}
+                                >
+                                    <option value="">🌐 General Feed</option>
+                                    <option value="Finance">📈 Finance</option>
+                                    <option value="Tech">💻 Tech</option>
+                                    <option value="Gaming">🎮 Gaming</option>
+                                </select>
+                            ) : (
+                                <div>{/* Spacer */}</div>
+                            )}
+
 
                             <button
                                 type="submit"

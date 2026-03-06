@@ -24,9 +24,13 @@ export const createCommunity = async (data: { name: string, description: string,
 };
 
 export const getCommunities = async (searchQuery: string = '') => {
-    const url = searchQuery ? `${API_URL}?search=${encodeURIComponent(searchQuery)}` : API_URL;
+    const timestamp = Date.now();
+    const url = searchQuery
+        ? `${API_URL}?search=${encodeURIComponent(searchQuery)}&_t=${timestamp}`
+        : `${API_URL}?_t=${timestamp}`;
     const response = await fetch(url, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        cache: 'no-store'
     });
 
     if (!response.ok) {
@@ -37,8 +41,9 @@ export const getCommunities = async (searchQuery: string = '') => {
 };
 
 export const getCommunityById = async (id: string) => {
-    const response = await fetch(`${API_URL}/${id}`, {
-        headers: getAuthHeaders()
+    const response = await fetch(`${API_URL}/${id}?_t=${Date.now()}`, {
+        headers: getAuthHeaders(),
+        cache: 'no-store'
     });
 
     if (!response.ok) {

@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Shield, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Users, Shield, MessageSquare, Loader2 } from 'lucide-react';
 import { getCommunityById, toggleJoinCommunity } from '../../api/community';
 import { useAuth } from '../../context/AuthContext';
-
-// Mock feed for community
-const mockCommunityFeed = [
-    { id: 1, author: 'Alice Smith', content: 'Just joined this community! Excited to learn from everyone here.', time: '2h ago', likes: 14, comments: 3 },
-    { id: 2, author: 'Bob Jones', content: 'Does anyone have good resources on state management best practices?', time: '5h ago', likes: 8, comments: 12 },
-    { id: 3, author: 'Charlie Brown', content: 'We are hosting a community meetup next week. Check the pinned post for details!', time: '1d ago', likes: 45, comments: 7 }
-];
+import { getFeed } from '../../api/posts';
+import { CreatePost } from '../post/CreatePost';
+import { PostCard } from '../post/PostCard';
 
 const CommunityDetailsPage = () => {
     const { id } = useParams();
@@ -19,6 +15,12 @@ const CommunityDetailsPage = () => {
     const [community, setCommunity] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const [posts, setPosts] = useState<any[]>([]);
+    const [loadingPosts, setLoadingPosts] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isJoined, setIsJoined] = useState(false);
+
     useEffect(() => {
         const fetchCommunity = async () => {
             if (!id) return;
@@ -26,6 +28,17 @@ const CommunityDetailsPage = () => {
                 setLoading(true);
                 const data = await getCommunityById(id);
                 setCommunity(data);
+
+                // Initialize joined state
+                if (user && data.members) {
+                    const userIdStr = (user as any)?._id?.toString() || user?.id?.toString();
+                    const memberMatch = data.members.some((member: any) => {
+                        if (!member) return false;
+                        const memberStr = typeof member === 'object' ? (member._id?.toString() || member.id?.toString()) : member.toString();
+                        return memberStr === userIdStr;
+                    });
+                    setIsJoined(memberMatch);
+                }
             } catch (err) {
                 console.error("Failed to fetch community:", err);
             } finally {
@@ -38,14 +51,55 @@ const CommunityDetailsPage = () => {
 
     const handleToggleJoin = async () => {
         if (!community || !community._id) return;
+
+        // Optimistic UI update
+        setIsJoined(!isJoined);
+        setCommunity((prev: any) => ({
+            ...prev,
+            memberCount: Math.max(0, isJoined ? (prev.memberCount - 1) : (prev.memberCount + 1))
+        }));
+
         try {
-            await toggleJoinCommunity(community._id);
-            // Re-fetch community to update state
-            const data = await getCommunityById(id as string);
-            setCommunity(data);
+            const result = await toggleJoinCommunity(community._id);
+            if (result) {
+                setIsJoined(result.isMember);
+                if (result.community) {
+                    setCommunity({ ...community, ...result.community });
+                }
+            }
         } catch (error) {
             console.error('Failed to toggle join status:', error);
+            // Revert on error
+            setIsJoined(!isJoined);
         }
+    };
+
+    const fetchPosts = async (pageNum: number, commName: string) => {
+        try {
+            setLoadingPosts(true);
+            const data = await getFeed(pageNum, 10, commName);
+            setPosts(prev => {
+                if (pageNum === 1) return data;
+                const existingIds = new Set(prev.map(p => p._id));
+                const newPosts = data.filter((p: any) => !existingIds.has(p._id));
+                return [...prev, ...newPosts];
+            });
+            setHasMore(data.length === 10);
+        } catch (error) {
+            console.error('Failed to fetch community posts:', error);
+        } finally {
+            setLoadingPosts(false);
+        }
+    };
+
+    useEffect(() => {
+        if (community?.name) {
+            fetchPosts(page, community.name);
+        }
+    }, [page, community?.name]);
+
+    const handlePostCreated = (newPost: any) => {
+        setPosts(prev => [newPost, ...prev]);
     };
 
     if (loading) {
@@ -84,16 +138,13 @@ const CommunityDetailsPage = () => {
                         <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{community.memberCount || 0}</span> members
                     </div>
                     {user && (
-                        community.members?.some((member: any) =>
-                            (typeof member === 'object' && member._id === user.id) ||
-                            member === user.id
-                        ) ? (
+                        isJoined ? (
                             <button
                                 className="btn btn-outline"
-                                style={{ padding: '0.625rem 1.5rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
+                                style={{ padding: '0.625rem 1.5rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
                                 onClick={handleToggleJoin}
                             >
-                                Joined
+                                Leave Community
                             </button>
                         ) : (
                             <button
@@ -173,26 +224,8 @@ const CommunityDetailsPage = () => {
                 <div className="feed-content">
                     {/* Composer */}
                     <div className="glass-card mb-6" style={{ padding: '1.5rem' }}>
-                        {user && community.members?.some((member: any) =>
-                            (typeof member === 'object' && member._id === user.id) ||
-                            member === user.id
-                        ) ? (
-                            <div className="flex gap-4">
-                                <div className="avatar" style={{ flexShrink: 0 }}>
-                                    {user.name ? user.name.substring(0, 2).toUpperCase() : 'ME'}
-                                </div>
-                                <div style={{ flexGrow: 1 }}>
-                                    <textarea
-                                        className="input-field mb-4"
-                                        placeholder="Share something with the community..."
-                                        rows={3}
-                                        style={{ width: '100%', resize: 'none' }}
-                                    ></textarea>
-                                    <div className="flex justify-end">
-                                        <button className="btn btn-primary" style={{ padding: '0.5rem 1.5rem', width: 'auto' }}>Post</button>
-                                    </div>
-                                </div>
-                            </div>
+                        {user && isJoined ? (
+                            <CreatePost defaultCommunity={community.name} onPostCreated={handlePostCreated} />
                         ) : (
                             <div className="flex flex-col items-center justify-center p-4">
                                 <MessageSquare size={32} style={{ color: 'var(--text-muted)', marginBottom: '1rem', opacity: 0.5 }} />
@@ -204,23 +237,29 @@ const CommunityDetailsPage = () => {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        {mockCommunityFeed.map(post => (
-                            <div key={post.id} className="glass-card" style={{ padding: '1.5rem' }}>
-                                <div className="flex items-center gap-3 mb-3">
-                                    <div className="avatar">{post.author.charAt(0)}</div>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{post.author}</div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{post.time}</div>
-                                    </div>
-                                </div>
-                                <p style={{ margin: '0 0 1rem 0', color: 'var(--text-main)' }}>{post.content}</p>
-                                <div className="divider" style={{ margin: '1rem 0' }}></div>
-                                <div className="flex gap-4" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                    <span style={{ cursor: 'pointer' }}>❤️ {post.likes} Likes</span>
-                                    <span style={{ cursor: 'pointer' }}>💬 {post.comments} Comments</span>
-                                </div>
+                        {posts.length === 0 && !loadingPosts ? (
+                            <div className="text-center p-8 glass-card">
+                                <p style={{ color: 'var(--text-muted)' }}>No posts in this community yet.</p>
                             </div>
-                        ))}
+                        ) : (
+                            posts.map(post => (
+                                <PostCard key={post._id} post={post} />
+                            ))
+                        )}
+
+                        {loadingPosts && (
+                            <div className="flex justify-center p-4">
+                                <Loader2 className="animate-spin text-blue-500" size={24} />
+                            </div>
+                        )}
+
+                        {hasMore && posts.length > 0 && !loadingPosts && (
+                            <div className="flex justify-center mt-4 mb-4">
+                                <button className="btn btn-outline" onClick={() => setPage(p => p + 1)}>
+                                    Load More
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (
@@ -260,4 +299,5 @@ const CommunityDetailsPage = () => {
 };
 
 export default CommunityDetailsPage;
+
 

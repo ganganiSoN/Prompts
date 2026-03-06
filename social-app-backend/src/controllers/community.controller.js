@@ -22,12 +22,13 @@ const createCommunity = async (req, res) => {
             processedTags = tags;
         }
 
+        const creatorId = req.user.userId || req.user.id || req.user._id;
         const newCommunity = await Community.create({
             name,
             description,
             tags: processedTags,
-            creator: req.user.userId,
-            members: [req.user.userId], // Creator is automatically the first member
+            creator: creatorId,
+            members: [creatorId], // Creator is automatically the first member
             memberCount: 1
         });
 
@@ -98,16 +99,17 @@ const toggleJoinCommunity = async (req, res) => {
             return res.status(404).json({ message: 'Community not found' });
         }
 
-        const userId = req.user.userId;
-        const isMember = community.members.some(id => id.toString() === userId.toString());
+        const userId = req.user.userId || req.user.id || req.user._id;
+        const isMember = community.members.some(id => id && id.toString() === userId.toString());
 
         if (isMember) {
             // Leave community
-            community.members = community.members.filter(id => id.toString() !== userId.toString());
+            community.members = community.members.filter(id => id && id.toString() !== userId.toString());
+
         } else {
             // Join community
             // Check if they are already in the array somehow before pushing
-            if (!community.members.find(id => id.toString() === userId.toString())) {
+            if (!community.members.find(id => id && id.toString() === userId.toString())) {
                 community.members.push(userId);
             }
         }

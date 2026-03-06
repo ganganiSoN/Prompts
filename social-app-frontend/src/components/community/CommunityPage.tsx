@@ -15,17 +15,45 @@ const CommunityPage = () => {
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'members'>('newest');
     const [showFilterMenu, setShowFilterMenu] = useState(false);
 
-    const getSortedCommunities = () => {
-        const sorted = [...communities];
-        if (sortBy === 'newest') {
-            sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        } else if (sortBy === 'oldest') {
-            sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-        } else if (sortBy === 'members') {
-            sorted.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+    const getSplitCommunities = () => {
+        let joined: any[] = [];
+        let suggested: any[] = [];
+
+        if (communities && communities.length > 0) {
+            communities.forEach(community => {
+                const userIdStr = user?.id?.toString();
+                const isMember: boolean = user && community.members?.some((member: any) => {
+                    if (!member) return false;
+                    const memberStr = typeof member === 'object' ? (member._id?.toString() || member.id?.toString()) : member.toString();
+                    return memberStr === userIdStr;
+                });
+
+                if (isMember) {
+                    joined.push(community);
+                } else {
+                    suggested.push(community);
+                }
+            });
         }
-        return sorted;
+
+        const sortArray = (arr: any[]) => {
+            if (sortBy === 'newest') {
+                return [...arr].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            } else if (sortBy === 'oldest') {
+                return [...arr].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            } else if (sortBy === 'members') {
+                return [...arr].sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+            }
+            return arr;
+        };
+
+        return {
+            joined: sortArray(joined),
+            suggested: sortArray(suggested)
+        };
     };
+
+    const { joined, suggested } = getSplitCommunities();
 
     const navigate = useNavigate();
 
@@ -45,9 +73,12 @@ const CommunityPage = () => {
     const handleToggleJoin = async (e: React.MouseEvent, communityId: string) => {
         e.stopPropagation();
         try {
-            await toggleJoinCommunity(communityId);
-            // Re-fetch communities to get updated member counts and status
-            fetchCommunities();
+            const result = await toggleJoinCommunity(communityId);
+            if (result && result.community) {
+                setCommunities(prev => prev.map(c =>
+                    (c._id === communityId || c.id === communityId) ? result.community : c
+                ));
+            }
         } catch (error) {
             console.error('Failed to toggle join status:', error);
         }
@@ -142,87 +173,151 @@ const CommunityPage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                {loading ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>Loading communities...</div>
-                ) : error ? (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: 'red' }}>{error}</div>
-                ) : getSortedCommunities().map((community: any) => (
-                    <div
-                        key={community.id}
-                        className="glass-card"
-                        style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100%', transition: 'transform 0.2s', cursor: 'pointer' }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        onClick={() => navigate(`/community/${community.id}`)}
-                    >
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold' }}>
-                                {community.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            {community.trending && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
-                                    <TrendingUp size={12} />
-                                    Hot
-                                </div>
-                            )}
-                        </div>
-
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
-                            {community.name}
-                        </h3>
-
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: '1.5', margin: '0 0 1rem 0', flexGrow: 1 }}>
-                            {community.description}
-                        </p>
-
-                        <div className="flex gap-2 mb-4" style={{ flexWrap: 'wrap' }}>
-                            {community.tags?.map((tag: string) => (
-                                <span key={tag} style={{ background: 'var(--surface-active)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        <div className="divider" style={{ margin: '1rem 0' }}></div>
-
-                        <div className="flex justify-between items-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            <div className="flex items-center gap-2">
-                                <Users size={16} />
-                                {community.memberCount}
-                            </div>
-
-                            <div className="flex gap-2">
-                                {user && community.members?.includes(user.id) ? (
-                                    <button
-                                        className="btn btn-outline"
-                                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', height: 'auto', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
-                                        onClick={(e) => handleToggleJoin(e, community._id)}
-                                    >
-                                        Joined
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="btn btn-primary"
-                                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', height: 'auto' }}
-                                        onClick={(e) => handleToggleJoin(e, community._id)}
-                                    >
-                                        Join
-                                    </button>
-                                )}
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>Loading communities...</div>
+            ) : error ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>{error}</div>
+            ) : (
+                <>
+                    {/* Joined Communities Section */}
+                    {joined.length > 0 && (
+                        <div className="mb-8">
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: 'var(--primary)' }}>•</span> Your Communities
+                            </h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                {joined.map((community: any) => (
+                                    <CommunityCard
+                                        key={community.id || community._id}
+                                        community={community}
+                                        user={user}
+                                        navigate={navigate}
+                                        handleToggleJoin={handleToggleJoin}
+                                    />
+                                ))}
                             </div>
                         </div>
+                    )}
+
+                    {/* Suggested Communities Section */}
+                    {suggested.length > 0 && (
+                        <div>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ color: 'var(--primary)' }}>•</span> Discover Communities
+                            </h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                {suggested.map((community: any) => (
+                                    <CommunityCard
+                                        key={community.id || community._id}
+                                        community={community}
+                                        user={user}
+                                        navigate={navigate}
+                                        handleToggleJoin={handleToggleJoin}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!loading && communities.length === 0 && (
+                        <div className="glass-card flex flex-col items-center justify-center p-8" style={{ textAlign: 'center' }}>
+                            <MessageSquare size={48} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '1rem' }} />
+                            <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>No communities found</h3>
+                            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Create one to get started!</p>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};
+
+// Extracted CommunityCard for cleaner code
+const CommunityCard = ({ community, user, navigate, handleToggleJoin }: any) => {
+    // Shared member check logic
+    const userIdStr = user?._id?.toString() || user?.id?.toString();
+
+    // Initialize local state for instant UI feedback
+    const [isJoined, setIsJoined] = useState<boolean>(() => {
+        return user && community.members?.some((member: any) => {
+            if (!member) return false;
+            const memberStr = typeof member === 'object' ? (member._id?.toString() || member.id?.toString()) : member.toString();
+            return memberStr === userIdStr;
+        });
+    });
+
+    const [memberCount, setMemberCount] = useState<number>(community.memberCount || 0);
+
+    const onToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Optimistic Update
+        setIsJoined(!isJoined);
+        setMemberCount(prev => Math.max(0, isJoined ? prev - 1 : prev + 1));
+
+        // Parent API call (CommunityPage level handler)
+        await handleToggleJoin(e, community._id || community.id);
+    };
+
+    return (
+        <div
+            className="glass-card"
+            style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', height: '100%', transition: 'transform 0.2s', cursor: 'pointer' }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            onClick={() => navigate(`/community/${community._id}`)}
+        >
+            <div className="flex justify-between items-start mb-4">
+                <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold' }}>
+                    {community.name.substring(0, 2).toUpperCase()}
+                </div>
+                {community.trending && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                        <TrendingUp size={12} />
+                        Hot
                     </div>
+                )}
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+                {community.name}
+            </h3>
+
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: '1.5', margin: '0 0 1rem 0', flexGrow: 1 }}>
+                {community.description}
+            </p>
+
+            <div className="flex gap-2 mb-4" style={{ flexWrap: 'wrap' }}>
+                {community.tags?.map((tag: string) => (
+                    <span key={tag} style={{ background: 'var(--surface-active)', color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
+                        {tag}
+                    </span>
                 ))}
             </div>
 
-            {!loading && communities.length === 0 && (
-                <div className="glass-card flex flex-col items-center justify-center p-8" style={{ textAlign: 'center' }}>
-                    <MessageSquare size={48} style={{ color: 'var(--text-muted)', opacity: 0.5, marginBottom: '1rem' }} />
-                    <h3 style={{ color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>No communities found</h3>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Create one to get started!</p>
+            <div className="divider" style={{ margin: '1rem 0' }}></div>
+
+            <div className="flex justify-between items-center" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                <div className="flex items-center gap-2">
+                    <Users size={16} />
+                    {memberCount}
                 </div>
-            )}
+
+                {user && (
+                    <div className="flex gap-2">
+                        <button
+                            className={`btn ${isJoined ? 'btn-outline' : 'btn-primary'} w-full`}
+                            style={{
+                                padding: '0.5rem 1rem', fontSize: '0.875rem', height: 'auto',
+                                ...(isJoined ? { color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' } : {})
+                            }}
+                            onClick={onToggle}
+                        >
+                            {isJoined ? 'Leave Community' : 'Join'}
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
