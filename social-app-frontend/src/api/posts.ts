@@ -65,6 +65,19 @@ export const engageWithPost = async (postId: string, type: string, content?: str
     return response.json();
 };
 
+export const voteOnPoll = async (postId: string, optionIndex: number) => {
+    const response = await fetch(`${API_URL}/${postId}/vote`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ optionIndex })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to vote on poll');
+    }
+    return response.json();
+};
+
 export const repostPost = async (postId: string, content?: string) => {
     const response = await fetch(`${API_URL}/${postId}/repost`, {
         method: 'POST',

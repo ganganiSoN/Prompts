@@ -2,17 +2,27 @@ import React, { useState } from 'react';
 import {
     Heart,
     MessageSquare,
+    Share2,
     Repeat2,
     Bookmark,
-    Share,
     MoreHorizontal,
     BarChart2,
+    Edit2,
+    AlertTriangle,
+    Eye,
+    Image as ImageIcon,
+    Video as VideoIcon,
+    Check,
+    ExternalLink,
+    Calendar,
+    MapPin,
+    Hash,
+    CheckCircle2,
     CalendarClock,
     Trash2,
-    Edit2,
-    AlertTriangle
+    Share
 } from 'lucide-react';
-import { engageWithPost, repostPost, deletePost, updatePost } from '../../api/posts';
+import { engageWithPost, repostPost, deletePost, updatePost, voteOnPoll } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { CommentSection } from './CommentSection';
@@ -125,9 +135,9 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                     {mediaUrl && (
                         <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 relative">
                             {post.type === 'image' ? (
-                                <img src={mediaUrl} alt="Attached content" className="w-full object-contain max-h-[600px] mx-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                <img src={mediaUrl} alt="Attached content" className="w-full max-w-full object-contain max-h-[600px] mx-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
                             ) : (
-                                <video src={mediaUrl} controls className="w-full max-h-[600px] object-contain mx-auto block" />
+                                <video src={mediaUrl} controls className="w-full max-w-full max-h-[600px] object-contain mx-auto block" />
                             )}
                         </div>
                     )}
@@ -139,25 +149,45 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
         // Handle Poll UI Rendering
         if (post.type === 'poll' && post.poll) {
-            const totalVotes = post.poll.options.reduce((acc: number, opt: any) => acc + (opt.votes || 0), 0);
+            const [localPoll, setLocalPoll] = useState(post.poll);
+            const totalVotes = localPoll.options.reduce((acc: number, opt: any) => acc + (opt.votes || 0), 0);
+
+            const handlePollVote = async (idx: number) => {
+                if (!user) {
+                    showError('Please login to vote');
+                    return;
+                }
+
+                try {
+                    const updatedPost = await voteOnPoll(post._id, idx);
+                    if (updatedPost && updatedPost.poll) {
+                        setLocalPoll(updatedPost.poll);
+                    }
+                    success('Vote recorded!');
+                } catch (err: any) {
+                    showError(err.message || 'Failed to record vote');
+                }
+            };
 
             return (
                 <div className="mt-3">
                     {baseContent}
                     <div className="poll-container">
                         <h4 className="poll-question-header">
-                            <BarChart2 size={18} className="text-indigo-400" /> {post.poll.question}
+                            <BarChart2 size={18} className="text-indigo-400" /> {localPoll.question}
                         </h4>
                         <div className="poll-options-wrapper">
-                            {post.poll.options.map((opt: any, idx: number) => {
+                            {localPoll.options.map((opt: any, idx: number) => {
                                 const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
                                 return (
                                     <button
                                         key={idx}
-                                        className="poll-option-btn group"
+                                        onClick={() => handlePollVote(idx)}
+                                        className="poll-option-btn group hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all w-full text-left"
+                                        title={user ? "Click to vote" : "Login to vote"}
                                     >
                                         <div
-                                            className="poll-option-progress"
+                                            className="poll-option-progress bg-indigo-600/20"
                                             style={{ width: `${percent}%` }}
                                         />
                                         <div className="poll-option-content">

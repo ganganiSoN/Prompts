@@ -13,7 +13,7 @@ const engagementSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['like', 'comment', 'repost', 'bookmark', 'share', 'comment_like'],
+        enum: ['like', 'comment', 'repost', 'bookmark', 'share', 'comment_like', 'poll_vote'],
         required: true
     },
     content: {

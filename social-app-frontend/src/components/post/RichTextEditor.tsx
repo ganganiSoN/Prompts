@@ -114,6 +114,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
         });
     };
 
+    const removePollOption = (index: number) => {
+        if (!value.poll || value.poll.options.length <= 2) return;
+        const newOptions = value.poll.options.filter((_, i) => i !== index);
+        onChange({ ...value, poll: { ...value.poll, options: newOptions } });
+    };
+
     const removePoll = () => {
         const { poll, ...rest } = value;
         onChange(rest);
@@ -196,11 +202,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
 
                     {/* Poll Block */}
                     {value.poll && (
-                        <div className="poll-creator-container">
-                            <button onClick={removePoll} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+                        <div className="poll-creator-container relative">
+                            <button
+                                type="button"
+                                onClick={removePoll}
+                                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-900/40 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all border border-gray-700/50 hover:border-red-500/50 cursor-pointer z-10"
+                                title="Remove Poll"
+                            >
                                 <X size={16} />
                             </button>
-                            <h4 className="poll-creator-header">
+                            <h4 className="poll-creator-header pr-10">
                                 <BarChart2 size={16} /> Create Poll
                             </h4>
                             <input
@@ -208,28 +219,42 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                                 placeholder="Ask a question..."
                                 value={value.poll.question}
                                 onChange={(e) => onChange({ ...value, poll: { ...value.poll!, question: e.target.value } })}
-                                className="poll-creator-input"
+                                className="poll-creator-input w-full"
                             />
-                            <div className="space-y-2">
+                            <div className="space-y-2 mt-2">
                                 {value.poll.options.map((opt, i) => (
-                                    <div key={i} className="poll-option-row">
-                                        <div className="poll-option-letter">
+                                    <div key={i} className="poll-option-row flex items-center gap-3">
+                                        <div className="poll-option-letter shrink-0">
                                             {String.fromCharCode(65 + i)}
                                         </div>
-                                        <input
-                                            type="text"
-                                            placeholder={`Option ${i + 1}`}
-                                            value={opt.text}
-                                            onChange={(e) => updatePollOption(i, e.target.value)}
-                                            className="poll-creator-input !mb-0"
-                                        />
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder={`Option ${i + 1}`}
+                                                value={opt.text}
+                                                onChange={(e) => updatePollOption(i, e.target.value)}
+                                                className="poll-creator-input !mb-0 w-full"
+                                            />
+                                            {value.poll && value.poll.options.length > 2 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removePollOption(i)}
+                                                    className="w-10 flex shrink-0 items-center justify-center rounded-lg bg-gray-900/40 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all border border-transparent hover:border-red-500/30"
+                                                    title="Remove Option"
+                                                    style={{ height: "42px" }}
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            {value.poll.options.length < 4 && (
+                            {value.poll && value.poll.options.length < 4 && (
                                 <button
+                                    type="button"
                                     onClick={addPollOption}
-                                    className="poll-add-btn"
+                                    className="poll-add-btn mt-3"
                                 >
                                     <Plus size={14} /> Add Option
                                 </button>

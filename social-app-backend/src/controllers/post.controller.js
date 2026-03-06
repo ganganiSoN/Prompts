@@ -173,6 +173,54 @@ exports.engage = async (req, res) => {
     }
 };
 
+// Vote on Poll Option
+exports.votePoll = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { optionIndex } = req.body;
+        const userId = req.user.userId;
+
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        if (post.type !== 'poll' || !post.poll || !post.poll.options) {
+            return res.status(400).json({ message: 'Post is not a valid poll' });
+        }
+
+        if (optionIndex < 0 || optionIndex >= post.poll.options.length) {
+            return res.status(400).json({ message: 'Invalid poll option index' });
+        }
+
+        // Ideally, check Engagement model to prevent double voting. For now, track via Engagement:
+        const existingVote = await Engagement.findOne({ user: userId, post: id, type: 'poll_vote' });
+        if (existingVote) {
+            return res.status(400).json({ message: 'You have already voted on this poll' });
+        }
+
+        // Increment the specific option vote
+        post.poll.options[optionIndex].votes += 1;
+        await post.save();
+
+        // Record vote
+        await Engagement.create({
+            user: userId,
+            post: id,
+            type: 'poll_vote',
+            content: optionIndex.toString() // Store the index they voted for in content
+        });
+
+        // Re-fetch populated post
+        const populatedPost = await Post.findById(id).populate('author', 'email _id name avatar');
+
+        res.status(200).json(populatedPost);
+    } catch (error) {
+        console.error('Error voting on poll:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
 // Get Post Comments
 exports.getComments = async (req, res) => {
     try {

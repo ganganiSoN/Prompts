@@ -26,6 +26,20 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
             return;
         }
 
+        if (payload.poll) {
+            if (!payload.poll.question.trim()) {
+                showError('Poll question cannot be empty.');
+                return;
+            }
+            const validOptions = payload.poll.options.filter(opt => opt.text.trim().length > 0);
+            if (validOptions.length < 2) {
+                showError('A poll must have at least two valid options.');
+                return;
+            }
+            // Assign validated options back to the payload before submitting
+            payload.poll.options = validOptions;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
