@@ -7,7 +7,9 @@ import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import MainLayout from './components/layout/MainLayout';
 import DashboardPage from './components/dashboard/DashboardPage';
 import ProfilePage from './components/profile/ProfilePage';
+import EditProfilePage from './components/profile/EditProfilePage';
 import SettingsPage from './components/settings/SettingsPage';
+import { Feed } from './components/feed/Feed';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -32,7 +34,9 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="feed" element={<Feed />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="profile/edit" element={<EditProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>

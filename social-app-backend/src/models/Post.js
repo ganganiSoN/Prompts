@@ -1,0 +1,61 @@
+const mongoose = require('mongoose');
+
+const postSchema = new mongoose.Schema({
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    type: {
+        type: String,
+        enum: ['text', 'image', 'video', 'poll', 'thread'],
+        default: 'text',
+        required: true
+    },
+    content: {
+        type: String, // Can be text, or URL for image/video
+        required: true
+    },
+    poll: {
+        question: String,
+        options: [{
+            text: String,
+            votes: { type: Number, default: 0 }
+        }],
+        endsAt: Date
+    },
+    threadId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Post'
+    },
+    community: {
+        type: String,
+        default: 'General'
+    },
+    status: {
+        type: String,
+        enum: ['DRAFT', 'PUBLISHED', 'FLAGGED', 'UNDER_REVIEW', 'APPROVED', 'REMOVED', 'ARCHIVED'],
+        default: 'PUBLISHED'
+    },
+    isScheduled: {
+        type: Boolean,
+        default: false
+    },
+    scheduledFor: {
+        type: Date
+    },
+    engagementCount: {
+        likes: { type: Number, default: 0 },
+        comments: { type: Number, default: 0 },
+        reposts: { type: Number, default: 0 },
+        bookmarks: { type: Number, default: 0 },
+        shares: { type: Number, default: 0 }
+    }
+}, { timestamps: true });
+
+// Optional: Indexing for fast feed query
+postSchema.index({ status: 1, createdAt: -1 });
+postSchema.index({ author: 1, createdAt: -1 });
+postSchema.index({ community: 1, status: 1 });
+
+module.exports = mongoose.model('Post', postSchema);

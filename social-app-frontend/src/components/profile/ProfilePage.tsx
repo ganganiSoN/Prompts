@@ -1,14 +1,22 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { User, Mail, Shield } from 'lucide-react';
+import { User, Mail, Shield, Edit2 } from 'lucide-react';
 
 const ProfilePage = () => {
     const { user } = useAuth();
 
     return (
         <div className="page-container animate-fade-in">
-            <header className="page-header">
+            <header className="page-header flex justify-between items-center">
                 <h1 className="page-title">My Profile</h1>
+                <Link
+                    to="/profile/edit"
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-lg font-medium transition-colors border border-blue-200 dark:border-blue-900 shadow-sm"
+                >
+                    <Edit2 size={16} />
+                    Edit Profile
+                </Link>
             </header>
 
             <div className="glass-card mt-6 profile-card">
