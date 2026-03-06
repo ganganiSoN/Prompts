@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# logs
+*.log
+
+# build folders
+dist/
+build/
+
+# cache
+.cache/
+
+# coverage
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
