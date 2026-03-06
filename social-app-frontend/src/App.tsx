@@ -4,6 +4,10 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './components/auth/LoginPage';
 import SignupPage from './components/auth/SignupPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
+import MainLayout from './components/layout/MainLayout';
+import DashboardPage from './components/dashboard/DashboardPage';
+import ProfilePage from './components/profile/ProfilePage';
+import SettingsPage from './components/settings/SettingsPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -11,18 +15,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const Dashboard = () => {
-  const { user, logout } = useAuth();
-  return (
-    <div className="auth-container animate-fade-in">
-      <div className="glass-card auth-box text-center">
-        <h2>Welcome, {user?.name}!</h2>
-        <p className="mt-2 mb-6">You have successfully authenticated.</p>
-        <button onClick={logout} className="btn btn-primary">Logout</button>
-      </div>
-    </div>
-  );
-};
+
 
 const AppRoutes = () => {
   return (
@@ -34,10 +27,14 @@ const AppRoutes = () => {
         path="/"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <MainLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<DashboardPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Route>
     </Routes>
   );
 };
