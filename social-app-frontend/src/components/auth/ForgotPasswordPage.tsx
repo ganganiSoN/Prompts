@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, CheckCircle, Lock, ArrowRight, KeyRound } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 import { forgotPasswordApi, resetPasswordApi } from '../../api/auth';
 
 const ForgotPasswordPage = () => {
@@ -11,13 +12,10 @@ const ForgotPasswordPage = () => {
 
     const [isResetStep, setIsResetStep] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errorObj, setErrorObj] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const { success, error: showError } = useToast();
 
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
-        setSuccessMessage(null);
         if (!email) return;
         setIsSubmitting(true);
 
@@ -27,33 +25,30 @@ const ForgotPasswordPage = () => {
             if (data.mockResetToken) {
                 console.log('Mock Token:', data.mockResetToken);
             }
-            setSuccessMessage(data.message || 'Reset token sent');
+            success(data.message || 'Reset token sent');
             setTimeout(() => {
                 setIsSubmitting(false);
                 setIsResetStep(true);
-                setSuccessMessage(null);
             }, 1000);
         } catch (err: any) {
-            setErrorObj(err.message || 'Failed to request password reset');
+            showError(err.message || 'Failed to request password reset');
             setIsSubmitting(false);
         }
     };
 
     const handleResetSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorObj(null);
-        setSuccessMessage(null);
         if (!resetToken || !newPassword) return;
         setIsSubmitting(true);
 
         try {
             const data = await resetPasswordApi({ token: resetToken, newPassword });
-            setSuccessMessage(data.message || 'Password successfully reset');
+            success(data.message || 'Password successfully reset');
             setTimeout(() => {
                 navigate('/login');
             }, 2000);
         } catch (err: any) {
-            setErrorObj(err.message || 'Failed to reset password');
+            showError(err.message || 'Failed to reset password');
             setIsSubmitting(false);
         }
     };
@@ -74,9 +69,6 @@ const ForgotPasswordPage = () => {
                             : 'No worries! Enter your email and we will send you a reset link.'}
                     </p>
                 </div>
-
-                {errorObj && <div style={{ color: '#ef4444', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{errorObj}</div>}
-                {successMessage && <div style={{ color: '#10b981', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{successMessage}</div>}
 
                 {!isResetStep ? (
                     <form onSubmit={handleEmailSubmit}>

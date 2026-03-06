@@ -64,8 +64,8 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
     };
 
     return (
-        <div className="mb-8">
-            <form onSubmit={handleSubmit} className="relative">
+        <div className="mb-12">
+            <form onSubmit={handleSubmit} className="relative pb-4">
                 <div className="flex gap-4">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex-shrink-0 shadow-lg shadow-purple-500/20" />
                     <div className="flex-1 w-full min-w-0">
@@ -83,7 +83,7 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated }) => {
                         )}
 
                         {/* Submission Row */}
-                        <div className="flex justify-between items-center mt-4 pl-1">
+                        <div className="flex justify-between items-center mt-6 pl-1 mb-2">
                             <select
                                 className="post-action-select"
                                 value={community}

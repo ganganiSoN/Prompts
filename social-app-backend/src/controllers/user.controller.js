@@ -33,3 +33,22 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
+exports.getSuggestions = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Use MongoDB aggregation pipeline to sample 5 random users, excluding the requesting user
+        // We'll also only select necessary fields to keep the payload light
+        const suggestions = await User.aggregate([
+            { $match: { _id: { $ne: new require('mongoose').Types.ObjectId(userId) } } },
+            { $sample: { size: 5 } },
+            { $project: { password: 0, mfaSecret: 0, resetPasswordToken: 0, resetPasswordExpires: 0 } }
+        ]);
+
+        res.status(200).json(suggestions);
+    } catch (error) {
+        console.error('Error fetching user suggestions:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+

@@ -39,7 +39,7 @@ exports.createPost = async (req, res) => {
         }
 
         if (isScheduled && new Date(scheduledFor) > new Date()) {
-            status = 'DRAFT'; // Or keep it PUBLISHED but filtered by feed? App logic depending
+            status = 'DRAFT';
         }
 
         const newPost = new Post({

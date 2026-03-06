@@ -30,6 +30,7 @@ interface RichTextEditorProps {
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeholder }) => {
     const [showMediaInput, setShowMediaInput] = useState(false);
     const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+    const [showScheduleInput, setShowScheduleInput] = useState(false);
 
     const editor = useEditor({
         extensions: [
@@ -78,9 +79,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
     };
 
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     const handleMediaClick = (type: 'image' | 'video') => {
         setMediaType(type);
         setShowMediaInput(true);
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                onChange({ ...value, mediaUrl: event.target.result as string, mediaType });
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const updatePollOption = (index: number, text: string) => {
@@ -123,28 +139,47 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 <div className="px-5 pb-2">
                     {/* Media Block Preview */}
                     {showMediaInput && (
-                        <div className="relative mt-2 p-1 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-md animate-fade-in group/media">
+                        <div className="media-input-wrapper group/media">
                             <button
                                 onClick={removeMedia}
-                                className="absolute top-3 right-3 p-1.5 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors z-10 opacity-0 group-hover/media:opacity-100"
+                                className="media-close-btn opacity-0 group-hover/media:opacity-100"
                             >
                                 <X size={14} />
                             </button>
 
                             {!value.mediaUrl ? (
-                                <div className="p-3">
-                                    <input
-                                        type="url"
-                                        placeholder={`Paste ${mediaType} URL here...`}
-                                        className="w-full bg-transparent border-none outline-none text-blue-500 dark:text-blue-400 placeholder-blue-300 dark:placeholder-blue-800/50 text-sm font-medium"
-                                        autoFocus
-                                        onChange={(e) => onChange({ ...value, mediaUrl: e.target.value, mediaType })}
-                                    />
+                                <div className="media-input-container">
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="url"
+                                            placeholder={`Paste ${mediaType} URL here...`}
+                                            className="media-input-field flex-1"
+                                            autoFocus
+                                            onChange={(e) => onChange({ ...value, mediaUrl: e.target.value, mediaType })}
+                                        />
+                                        <div className="flex items-center text-gray-500 text-xs font-semibold px-1 uppercase tracking-wider">or</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="btn btn-primary whitespace-nowrap !py-0 !px-4"
+                                            style={{ height: 'auto', borderRadius: '0.75rem' }}
+                                        >
+                                            <Plus size={16} className="mr-1" />
+                                            Upload File
+                                        </button>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept={mediaType === 'image' ? 'image/*' : 'video/*'}
+                                            onChange={handleFileUpload}
+                                        />
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="relative rounded-lg overflow-hidden max-h-[300px] bg-gray-100 dark:bg-gray-900">
+                                <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900" style={{ maxHeight: '300px' }}>
                                     {mediaType === 'image' ? (
-                                        <img src={value.mediaUrl} alt="Preview" className="w-full object-cover" />
+                                        <img src={value.mediaUrl} alt="Preview" className="w-full object-cover" style={{ maxHeight: '300px', width: '100%', objectFit: 'cover' }} />
                                     ) : (
                                         <div className="w-full h-32 flex items-center justify-center text-gray-500">
                                             <VideoIcon size={32} />
@@ -199,12 +234,32 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                         </div>
                     )}
 
-                    {/* Schedule Block Indicator */}
-                    {value.scheduledFor && (
-                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium border border-blue-100 dark:border-blue-800/30 animate-fade-in">
-                            <Calendar size={12} />
-                            Scheduled for: {new Date(value.scheduledFor).toLocaleString()}
-                            <button onClick={() => { const { scheduledFor, ...rest } = value; onChange(rest); }} className="ml-1 hover:text-blue-800 dark:hover:text-blue-200"><X size={12} /></button>
+                    {/* Schedule Block Indicator / Input */}
+                    {(showScheduleInput || value.scheduledFor) && (
+                        <div className="scheduled-indicator">
+                            <Calendar size={14} />
+                            <span className="font-semibold text-xs uppercase tracking-wider hidden sm:inline mr-1">Schedule:</span>
+                            <input
+                                type="datetime-local"
+                                value={value.scheduledFor ? new Date(new Date(value.scheduledFor).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        onChange({ ...value, scheduledFor: new Date(e.target.value).toISOString() });
+                                    }
+                                }}
+                                className="bg-transparent border-none outline-none text-[#c4b5fd] font-medium text-sm w-auto cursor-pointer"
+                                style={{ colorScheme: 'dark' }}
+                            />
+                            <button
+                                onClick={() => {
+                                    const { scheduledFor, ...rest } = value;
+                                    onChange(rest);
+                                    setShowScheduleInput(false);
+                                }}
+                                className="scheduled-indicator-close"
+                            >
+                                <X size={14} />
+                            </button>
                         </div>
                     )}
                 </div>
@@ -301,12 +356,15 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                         <button
                             type="button"
                             onClick={() => {
-                                // Simplified Mock Scheduler toggle
-                                const fakeDate = new Date();
-                                fakeDate.setHours(fakeDate.getHours() + 24);
-                                onChange({ ...value, scheduledFor: fakeDate.toISOString() });
+                                setShowScheduleInput(!showScheduleInput);
+                                // Set a default time 1 hour from now when opening
+                                if (!showScheduleInput && !value.scheduledFor) {
+                                    const d = new Date();
+                                    d.setHours(d.getHours() + 1);
+                                    onChange({ ...value, scheduledFor: d.toISOString() });
+                                }
                             }}
-                            className={`rich-editor-btn ${value.scheduledFor ? 'active' : 'premium'} hover:scale-105 active:scale-95`}
+                            className={`rich-editor-btn ${showScheduleInput || value.scheduledFor ? 'active' : 'premium'} hover:scale-105 active:scale-95`}
                             title="Schedule"
                         >
                             <Calendar size={18} />

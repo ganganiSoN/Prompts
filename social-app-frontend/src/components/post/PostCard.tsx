@@ -54,27 +54,27 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             return (
                 <div className="mt-3">
                     {baseContent}
-                    <div className="mt-4 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10 shadow-sm">
-                        <h4 className="flex items-center gap-2 font-bold text-indigo-900 dark:text-indigo-200 mb-4 text-[15px]">
-                            <BarChart2 size={18} className="text-indigo-500" /> {post.poll.question}
+                    <div className="poll-container">
+                        <h4 className="poll-question-header">
+                            <BarChart2 size={18} className="text-indigo-400" /> {post.poll.question}
                         </h4>
-                        <div className="space-y-3">
+                        <div className="poll-options-wrapper">
                             {post.poll.options.map((opt: any, idx: number) => {
                                 const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
                                 return (
                                     <button
                                         key={idx}
-                                        className="w-full relative group overflow-hidden rounded-xl border border-indigo-200/50 dark:border-indigo-700/50 bg-white/60 dark:bg-gray-800/60 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all text-left p-3"
+                                        className="poll-option-btn group"
                                     >
                                         <div
-                                            className="absolute top-0 left-0 h-full bg-indigo-100 dark:bg-indigo-900/40 rounded-xl transition-all duration-700 ease-out"
+                                            className="poll-option-progress"
                                             style={{ width: `${percent}%` }}
                                         />
-                                        <div className="relative z-10 flex justify-between items-center px-1">
-                                            <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">
+                                        <div className="poll-option-content">
+                                            <span className="poll-option-text">
                                                 {opt.text}
                                             </span>
-                                            <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">
+                                            <span className="poll-option-percent">
                                                 {percent}%
                                             </span>
                                         </div>
@@ -82,13 +82,17 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                                 );
                             })}
                         </div>
-                        <p className="mt-3 text-xs text-gray-500 font-medium pl-1">{totalVotes} votes total</p>
+                        <p className="poll-footer">{totalVotes} votes total</p>
                     </div>
                 </div>
             )
         }
 
-        return baseContent;
+        return (
+            <div className="mb-4 mt-2">
+                {baseContent}
+            </div>
+        );
     };
 
     const handleEngage = async (type: string) => {
@@ -132,7 +136,9 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
             <div className="post-header">
                 <div className="post-author-info">
-                    <div className="post-avatar" />
+                    <div className="post-avatar">
+                        {post.author?.email ? post.author.email.charAt(0) : '?'}
+                    </div>
                     <div className="post-author-details">
                         <div className="post-author-name-row">
                             <h3 className="post-author-name">

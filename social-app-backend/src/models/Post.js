@@ -56,6 +56,6 @@ const postSchema = new mongoose.Schema({
 // Optional: Indexing for fast feed query
 postSchema.index({ status: 1, createdAt: -1 });
 postSchema.index({ author: 1, createdAt: -1 });
-postSchema.index({ community: 1, status: 1 });
+postSchema.index({ status: 1, community: 1, createdAt: -1 }); // Optimized for filtered feed
 
 module.exports = mongoose.model('Post', postSchema);

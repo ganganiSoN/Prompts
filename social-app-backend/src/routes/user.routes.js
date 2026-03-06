@@ -9,5 +9,8 @@ router.get('/profile', verifyToken, userController.getProfile);
 // PUT /api/users/profile - Update current user profile
 router.put('/profile', verifyToken, userController.updateProfile);
 
+// GET /api/users/suggestions - Get random user suggestions
+router.get('/suggestions', verifyToken, userController.getSuggestions);
+
 module.exports = router;
 
