@@ -125,8 +125,12 @@ const CommunityDetailsPage = () => {
                     <button onClick={() => navigate('/community')} className="icon-btn" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                         <ArrowLeft size={20} />
                     </button>
-                    <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold', width: '60px', height: '60px', fontSize: '1.5rem' }}>
-                        {community.name.substring(0, 2).toUpperCase()}
+                    <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold', width: '60px', height: '60px', fontSize: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                        {community.coverImage ? (
+                            <img src={community.coverImage} alt={community.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            community.name.substring(0, 2).toUpperCase()
+                        )}
                     </div>
                     <div>
                         <h1 className="page-title m-0" style={{ fontSize: '1.75rem' }}>{community.name}</h1>

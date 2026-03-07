@@ -12,6 +12,7 @@ import EditProfilePage from './components/profile/EditProfilePage';
 import SettingsPage from './components/settings/SettingsPage';
 import { Feed } from './components/feed/Feed';
 import DraftsPage from './components/post/DraftsPage';
+import { ExplorePage } from './components/explore/ExplorePage';
 import CommunityPage from './components/community/CommunityPage';
 import UsersPage from './components/admin/UsersPage';
 import UserDetailPage from './components/admin/UserDetailPage';
@@ -43,6 +44,7 @@ const AppRoutes = () => {
         <Route index element={<DashboardPage />} />
         <Route path="feed" element={<Feed />} />
         <Route path="drafts" element={<DraftsPage />} />
+        <Route path="explore" element={<ExplorePage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />

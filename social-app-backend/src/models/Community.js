@@ -15,6 +15,10 @@ const communitySchema = new mongoose.Schema({
         type: String,
         trim: true,
     }],
+    coverImage: {
+        type: String,
+        default: '',
+    },
     creator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

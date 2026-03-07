@@ -49,8 +49,41 @@ export const getFeed = async (page = 1, limit = 20, community?: string, followin
         headers: getAuthHeaders()
     });
     if (!response.ok) {
+    }
+    return response.json();
+};
+
+export interface ExploreFilters {
+    search?: string;
+    timeRange?: string;
+    language?: string;
+    minEngagement?: string;
+}
+
+export const getExplore = async (page = 1, limit = 20, filters?: ExploreFilters) => {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+    });
+    
+    if (filters) {
+        if (filters.search) params.append('search', filters.search);
+        if (filters.timeRange) params.append('timeRange', filters.timeRange);
+        if (filters.language) params.append('language', filters.language);
+        if (filters.minEngagement) params.append('minEngagement', filters.minEngagement);
+    }
+    
+    // Add a cache bust to ensure trending scores are immediately fresh
+    params.append('_t', Date.now().toString());
+
+    const response = await fetch(`${API_URL}/explore?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        cache: 'no-store'
+    });
+    if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch feed');
+        throw new Error(error.message || 'Failed to fetch explore feed');
     }
     return response.json();
 };

@@ -16,6 +16,10 @@ const postSchema = new mongoose.Schema({
         type: String, // Can be text, or URL for image/video
         required: false // Reposts might not have extra text content initially
     },
+    language: {
+        type: String,
+        default: 'en'
+    },
     originalPost: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Post'
