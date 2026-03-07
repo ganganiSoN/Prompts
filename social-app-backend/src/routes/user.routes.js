@@ -30,5 +30,11 @@ router.get('/:id/followers', verifyToken, userController.getFollowers);
 // GET /api/users/:id/following - Get list of users this user is following
 router.get('/:id/following', verifyToken, userController.getFollowing);
 
+// GET /api/users/:id/posts - Get all posts created by a user
+router.get('/:id/posts', verifyToken, userController.getUserPosts);
+
+// GET /api/users/:id/bookmarks - Get all posts bookmarked by a user
+router.get('/:id/bookmarks', verifyToken, userController.getUserBookmarks);
+
 module.exports = router;
 

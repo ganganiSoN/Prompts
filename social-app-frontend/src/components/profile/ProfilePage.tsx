@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { User, Mail, Shield, Edit2, Users, UserCheck, Loader2 } from 'lucide-react';
-import { getProfile } from '../../api/users';
+import { getProfile, getUserPosts, getUserBookmarks } from '../../api/users';
 import { FollowListModal } from './FollowListModal';
+import { PostCard } from '../post/PostCard';
 
 const ProfilePage = () => {
     const { user: authUser } = useAuth();
@@ -11,6 +12,90 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [followModalOpen, setFollowModalOpen] = useState(false);
     const [followModalType, setFollowModalType] = useState<'followers' | 'following'>('followers');
+
+    const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks'>('posts');
+    const [posts, setPosts] = useState<any[]>([]);
+    const [bookmarks, setBookmarks] = useState<any[]>([]);
+    const [postsPage, setPostsPage] = useState(1);
+    const [bookmarksPage, setBookmarksPage] = useState(1);
+    const [hasMorePosts, setHasMorePosts] = useState(true);
+    const [hasMoreBookmarks, setHasMoreBookmarks] = useState(true);
+    const [loadingPosts, setLoadingPosts] = useState(false);
+    const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+
+    const observer = useRef<IntersectionObserver | null>(null);
+
+    const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+        if (loadingPosts) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMorePosts) {
+                setPostsPage(prevPage => prevPage + 1);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loadingPosts, hasMorePosts]);
+
+    const lastBookmarkElementRef = useCallback((node: HTMLDivElement | null) => {
+        if (loadingBookmarks) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMoreBookmarks) {
+                setBookmarksPage(prevPage => prevPage + 1);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loadingBookmarks, hasMoreBookmarks]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        const fetchPosts = async () => {
+            try {
+                setLoadingPosts(true);
+                const data = await getUserPosts(user._id, postsPage, 10);
+                setPosts(prev => {
+                    const newPosts = [...prev];
+                    data.forEach((p: any) => {
+                        if (!newPosts.find(existing => existing._id === p._id)) {
+                            newPosts.push(p);
+                        }
+                    });
+                    return newPosts;
+                });
+                setHasMorePosts(data.length === 10);
+            } catch (error) {
+                console.error('Failed to fetch user posts', error);
+            } finally {
+                setLoadingPosts(false);
+            }
+        };
+        fetchPosts();
+    }, [user?._id, postsPage]);
+
+    useEffect(() => {
+        if (!user?._id) return;
+        const fetchBookmarks = async () => {
+            try {
+                setLoadingBookmarks(true);
+                const data = await getUserBookmarks(user._id, bookmarksPage, 10);
+                setBookmarks(prev => {
+                    const newBookmarks = [...prev];
+                    data.forEach((p: any) => {
+                        if (!newBookmarks.find(existing => existing._id === p._id)) {
+                            newBookmarks.push(p);
+                        }
+                    });
+                    return newBookmarks;
+                });
+                setHasMoreBookmarks(data.length === 10);
+            } catch (error) {
+                console.error('Failed to fetch user bookmarks', error);
+            } finally {
+                setLoadingBookmarks(false);
+            }
+        };
+        fetchBookmarks();
+    }, [user?._id, bookmarksPage]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -111,6 +196,75 @@ const ProfilePage = () => {
                             <span className="value">MFA {user?.isMfaEnabled ? 'Enabled' : 'Disabled'}</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Tabs Section */}
+            <div className="mt-8 mb-12" style={{ 'marginTop': '1rem' }}>
+                <div className="flex gap-4 mb-8 border-b border-gray-200 dark:border-gray-800 pb-4" style={{ marginBottom: '1rem' }}>
+                    <button
+                        onClick={() => setActiveTab('posts')}
+                        className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-outline'} px-6 py-2`}
+                    >
+                        My Posts
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('bookmarks')}
+                        className={`btn ${activeTab === 'bookmarks' ? 'btn-primary' : 'btn-outline'} px-6 py-2`}
+                    >
+                        Saved Bookmarks
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="space-y-4">
+                    {activeTab === 'posts' && (
+                        <>
+                            {posts.length === 0 && !loadingPosts ? (
+                                <div className="text-center py-12 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                                    <p className="text-gray-500 dark:text-gray-400">You haven't created any posts yet.</p>
+                                </div>
+                            ) : (
+                                posts.map((post, index) => (
+                                    <div key={`post-${post._id}`} ref={posts.length === index + 1 ? lastPostElementRef : null}>
+                                        <PostCard post={post} />
+                                    </div>
+                                ))
+                            )}
+                            {loadingPosts && (
+                                <div className="flex justify-center py-6">
+                                    <Loader2 className="animate-spin text-indigo-500" size={24} />
+                                </div>
+                            )}
+                            {!hasMorePosts && posts.length > 0 && (
+                                <div className="text-center py-6 text-gray-500 text-sm">You've reached the end of your posts.</div>
+                            )}
+                        </>
+                    )}
+
+                    {activeTab === 'bookmarks' && (
+                        <>
+                            {bookmarks.length === 0 && !loadingBookmarks ? (
+                                <div className="text-center py-12 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                                    <p className="text-gray-500 dark:text-gray-400">You haven't bookmarked any posts yet.</p>
+                                </div>
+                            ) : (
+                                bookmarks.map((post, index) => (
+                                    <div key={`bookmark-${post._id}`} ref={bookmarks.length === index + 1 ? lastBookmarkElementRef : null}>
+                                        <PostCard post={post} />
+                                    </div>
+                                ))
+                            )}
+                            {loadingBookmarks && (
+                                <div className="flex justify-center py-6">
+                                    <Loader2 className="animate-spin text-indigo-500" size={24} />
+                                </div>
+                            )}
+                            {!hasMoreBookmarks && bookmarks.length > 0 && (
+                                <div className="text-center py-6 text-gray-500 text-sm">You've reached the end of your bookmarks.</div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
 
