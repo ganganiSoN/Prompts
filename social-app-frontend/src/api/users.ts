@@ -122,3 +122,27 @@ export const getFollowing = async (userId: string) => {
     }
     return response.json();
 };
+
+export const getUserPosts = async (userId: string, page = 1, limit = 20) => {
+    const response = await fetch(`${API_URL}/${userId}/posts?page=${page}&limit=${limit}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user posts');
+    }
+    return response.json();
+};
+
+export const getUserBookmarks = async (userId: string, page = 1, limit = 20) => {
+    const response = await fetch(`${API_URL}/${userId}/bookmarks?page=${page}&limit=${limit}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user bookmarks');
+    }
+    return response.json();
+};

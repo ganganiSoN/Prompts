@@ -276,3 +276,54 @@ exports.getFollowing = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+exports.getUserPosts = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        const posts = await mongoose.model('Post').find({ author: userId, status: 'PUBLISHED' })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .populate('author', 'name username _id')
+            .populate({
+                path: 'originalPost',
+                populate: { path: 'author', select: 'name username _id' }
+            });
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error('Error fetching user posts:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.getUserBookmarks = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        const bookmarks = await Engagement.find({ user: userId, type: 'bookmark' })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .populate({
+                path: 'post',
+                populate: [
+                    { path: 'author', select: 'name username _id' },
+                    { path: 'originalPost', populate: { path: 'author', select: 'name username _id' } }
+                ]
+            });
+
+        // Map engagements to just the posts, filter out any null posts (if they were deleted)
+        const posts = bookmarks.map(b => b.post).filter(p => p != null && p.status === 'PUBLISHED');
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error('Error fetching user bookmarks:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
