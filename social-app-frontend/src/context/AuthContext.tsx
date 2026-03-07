@@ -7,6 +7,7 @@ interface User {
     bio?: string;
     website?: string;
     location?: string;
+    interests?: string[];
 }
 
 interface AuthContextType {

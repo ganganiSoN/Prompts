@@ -29,6 +29,7 @@ const generateUsers = async () => {
             'Dreamer. Doer. Thinker.',
             'Software engineering by day, gamer by night.'
         ];
+        const possibleInterests = ['Coding', 'Gaming', 'Music', 'Movies', 'Sports', 'Photography', 'Travel', 'Reading', 'Art', 'Technology', 'Science', 'Fitness', 'Food', 'Fashion', 'History'];
 
         const usersToInsert = [];
 
@@ -39,6 +40,13 @@ const generateUsers = async () => {
             const domain = domains[Math.floor(Math.random() * domains.length)];
             const location = locations[Math.floor(Math.random() * locations.length)];
             const bio = bios[Math.floor(Math.random() * bios.length)];
+
+            const userInterests = [];
+            const numInterests = Math.floor(Math.random() * 4) + 2; // 2 to 5 random interests
+            const shuffledInterests = [...possibleInterests].sort(() => 0.5 - Math.random());
+            for (let j = 0; j < numInterests; j++) {
+                userInterests.push(shuffledInterests[j]);
+            }
 
             // Unique email guaranteed by index
             const randomString = Math.random().toString(36).substring(2, 7);
@@ -56,6 +64,7 @@ const generateUsers = async () => {
                 password: hashedPassword, // Bypassing hook via insertMany
                 bio,
                 location,
+                interests: userInterests,
                 hasAcceptedTerms: true,
                 isEmailVerified: Math.random() > 0.3, // 70% chance of verified
                 createdAt: pastDate,

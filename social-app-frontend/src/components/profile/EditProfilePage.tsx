@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { Camera, Save, ArrowLeft, User, Mail, Link as LinkIcon, Info } from 'lucide-react';
+import { Camera, Save, ArrowLeft, User, Mail, Link as LinkIcon, Info, Tag, X } from 'lucide-react';
 
 
 const EditProfilePage = () => {
@@ -14,8 +14,10 @@ const EditProfilePage = () => {
         name: user?.name || '',
         bio: user?.bio || '',
         website: user?.website || '',
-        location: user?.location || ''
+        location: user?.location || '',
+        interests: user?.interests || [] as string[]
     });
+    const [interestInput, setInterestInput] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const { success, error: showError, showToast } = useToast();
 
@@ -24,6 +26,26 @@ const EditProfilePage = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleAddInterest = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && interestInput.trim()) {
+            e.preventDefault();
+            if (formData.interests.length >= 10) {
+                showError('You can only add up to 10 interests.');
+                return;
+            }
+            if (!formData.interests.includes(interestInput.trim())) {
+                setFormData({ ...formData, interests: [...formData.interests, interestInput.trim()] });
+            }
+            setInterestInput('');
+        }
+    };
+
+    const removeInterest = (interestToRemove: string) => {
+        setFormData({
+            ...formData,
+            interests: formData.interests.filter((i: string) => i !== interestToRemove)
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -174,6 +196,36 @@ const EditProfilePage = () => {
                                 onChange={handleChange}
                                 className="input-field"
                                 placeholder="City, Country"
+                            />
+                        </div>
+                    </div>
+
+
+                    <div className="input-group mb-6">
+                        <label className="input-label">Interests (Press Enter to add)</label>
+                        <Tag size={18} className="input-icon" />
+                        <div className="input-field min-h-[50px] flex flex-wrap gap-2 items-center" style={{ paddingLeft: '2.8rem', paddingTop: '0.6rem', paddingBottom: '0.6rem' }}>
+                            {formData.interests.map((interest: string, index: number) => (
+                                <span key={index} className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm flex items-center gap-1 border border-indigo-500/30">
+                                    {interest}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeInterest(interest)}
+                                        className="hover:text-red-400 focus:outline-none transition-colors"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </span>
+                            ))}
+                            <input
+                                type="text"
+                                value={interestInput}
+                                onChange={(e) => setInterestInput(e.target.value)}
+                                onKeyDown={handleAddInterest}
+                                className="flex-1 min-w-[120px] text-[var(--text-primary)] placeholder-[var(--text-muted)]"
+                                style={{ background: 'transparent', outline: 'none', border: 'none', boxShadow: 'none' }}
+                                placeholder={formData.interests.length < 10 ? "Add an interest..." : "Maximum 10 interests allowed"}
+                                disabled={formData.interests.length >= 10}
                             />
                         </div>
                     </div>

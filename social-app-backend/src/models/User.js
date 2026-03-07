@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    interests: [{
+        type: String,
+        trim: true
+    }],
     password: {
         type: String,
         required: function () {
