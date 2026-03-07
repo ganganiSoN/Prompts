@@ -22,6 +22,19 @@ import { ReportModal } from './ReportModal';
 import type { PostPayload } from './RichTextEditor';
 import './PostCard.css';
 
+const MemoizedMediaRenderer = React.memo(({ type, mediaUrl, maxHeightClass }: { type: string, mediaUrl: string, maxHeightClass: string }) => {
+    if (!mediaUrl) return null;
+    return (
+        <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 relative">
+            {type === 'image' ? (
+                <img src={mediaUrl} alt="Attached content" className="w-full max-w-full object-contain mx-auto block" style={{ maxHeight: maxHeightClass }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+            ) : (
+                <video src={mediaUrl} controls className="w-full max-w-full object-contain mx-auto block" style={{ maxHeight: maxHeightClass }} onClick={(e) => e.preventDefault()} />
+            )}
+        </div>
+    );
+});
+
 
 interface PostProps {
     post: any;
@@ -80,7 +93,26 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
         } as PostPayload;
     };
 
-    const [editPayload, setEditPayload] = useState<PostPayload>(getInitialEditPayload());
+    const [editPayload, setEditPayload] = useState<PostPayload>(getInitialEditPayload);
+    const [localPoll, setLocalPoll] = useState(post.type === 'poll' ? post.poll : null);
+    
+    // Memoize the heavy parsing operation so it does not block the UI every re-render
+    const parsedMedia = React.useMemo(() => {
+        if (post.type !== 'image' && post.type !== 'video') {
+            return { mediaUrl: '', textContent: post.content || '' };
+        }
+        
+        const lines = (post.content || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
+        const mediaUrlIndex = lines.findIndex((l: string) => l.startsWith('data:') || l.startsWith('http'));
+        
+        if (mediaUrlIndex !== -1) {
+            const url = lines[mediaUrlIndex];
+            const text = lines.filter((_: any, idx: number) => idx !== mediaUrlIndex).join('<br />');
+            return { mediaUrl: url, textContent: text };
+        }
+        
+        return { mediaUrl: '', textContent: post.content || '' };
+    }, [post.content, post.type]);
 
     const { error: showError, success } = useToast();
     const { user } = useAuth();
@@ -116,43 +148,45 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                             <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{original.author?.email?.split('@')[0]}</span>
                             <span className="text-xs text-gray-500">· {new Date(original.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <div className="text-sm text-gray-800 dark:text-gray-300 line-clamp-5" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                            {original.content ? (
-                                <div dangerouslySetInnerHTML={{ __html: original.content }} className="rich-text-content" />
-                            ) : (
-                                <span className="italic text-gray-500">[{original.type?.toUpperCase() || 'UNKNOWN'} CONTENT]</span>
-                            )}
+                        <div className="text-sm text-gray-800 dark:text-gray-300" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                            {(() => {
+                                if (original.type === 'image' || original.type === 'video') {
+                                    const lines = (original.content || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
+                                    const mediaUrlIndex = lines.findIndex((l: string) => l.startsWith('data:') || l.startsWith('http'));
+                                    let mediaUrl = '';
+                                    let textContent = original.content || '';
+
+                                    if (mediaUrlIndex !== -1) {
+                                        mediaUrl = lines[mediaUrlIndex];
+                                        textContent = lines.filter((_: any, idx: number) => idx !== mediaUrlIndex).join('<br />');
+                                    }
+
+                                    return (
+                                        <div className="mt-2">
+                                            {textContent && <div className="mb-3 whitespace-pre-wrap rich-text-content" dangerouslySetInnerHTML={{ __html: textContent }} />}
+                                            <MemoizedMediaRenderer type={original.type} mediaUrl={mediaUrl} maxHeightClass="min(40vh, 300px)" />
+                                        </div>
+                                    );
+                                }
+                                
+                                return original.content ? (
+                                    <div dangerouslySetInnerHTML={{ __html: original.content }} className="rich-text-content line-clamp-5" />
+                                ) : (
+                                    <span className="italic text-gray-500">[{original.type?.toUpperCase() || 'UNKNOWN'} CONTENT]</span>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
             );
         }
         if (post.type === 'image' || post.type === 'video') {
-            const lines = (post.content || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
-
-            // Look for the media URL specifically (starts with data: or http)
-            const mediaUrlIndex = lines.findIndex((l: string) => l.startsWith('data:') || l.startsWith('http'));
-            let mediaUrl = '';
-            let textContent = post.content || '';
-
-            if (mediaUrlIndex !== -1) {
-                mediaUrl = lines[mediaUrlIndex];
-                // Remove the URL line from the original content
-                textContent = lines.filter((_: any, idx: number) => idx !== mediaUrlIndex).join('<br />');
-            }
+            const { mediaUrl, textContent } = parsedMedia;
 
             return (
                 <div className="mt-3">
                     {textContent && <div className="text-gray-800 dark:text-gray-100 mb-3 whitespace-pre-wrap rich-text-content" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: textContent }} />}
-                    {mediaUrl && (
-                        <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 relative">
-                            {post.type === 'image' ? (
-                                <img src={mediaUrl} alt="Attached content" className="w-full max-w-full object-contain max-h-[600px] mx-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                            ) : (
-                                <video src={mediaUrl} controls className="w-full max-w-full max-h-[600px] object-contain mx-auto block" onClick={(e) => e.preventDefault()} />
-                            )}
-                        </div>
-                    )}
+                    <MemoizedMediaRenderer type={post.type} mediaUrl={mediaUrl} maxHeightClass="min(65vh, 600px)" />
                 </div>
             );
         }
@@ -160,8 +194,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
         const baseContent = <div className="post-content-area rich-text-content" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: post.content }} />;
 
         // Handle Poll UI Rendering
-        if (post.type === 'poll' && post.poll) {
-            const [localPoll, setLocalPoll] = useState(post.poll);
+        if (post.type === 'poll' && localPoll) {
             const totalVotes = localPoll.options.reduce((acc: number, opt: any) => acc + (opt.votes || 0), 0);
 
             const handlePollVote = async (idx: number) => {

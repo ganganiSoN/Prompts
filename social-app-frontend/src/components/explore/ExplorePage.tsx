@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Loader2, Search, TrendingUp, Hash, Flame, Filter, Calendar, Globe, ThumbsUp, X, Clock, Users } from 'lucide-react';
 import { PostCard } from '../post/PostCard';
-import { getExplore, getFeed } from '../../api/posts';
+import { getExplore, getFeed, getTrendingHashtags } from '../../api/posts';
 import { getUserSuggestions } from '../../api/users';
 
 export const ExplorePage = () => {
@@ -25,6 +25,9 @@ export const ExplorePage = () => {
     const [timeRange, setTimeRange] = useState('all');
     const [language, setLanguage] = useState('all');
     const [minEngagement, setMinEngagement] = useState('0');
+    
+    // Trending Hashtags
+    const [trendingHashtags, setTrendingHashtags] = useState<any[]>([]);
 
     // Recent Searches State
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -48,22 +51,27 @@ export const ExplorePage = () => {
     // Handle debounce for search and history saving
     useEffect(() => {
         const timerId = setTimeout(() => {
-            setDebouncedQuery(searchQuery);
-            setPage(1); // Reset page on new search
-            setPosts([]); // Clear posts on new search
-            setHasMore(true);
+            if (searchQuery !== debouncedQuery) {
+                setDebouncedQuery(searchQuery);
+                setPage(1); // Reset page on new search
+                setPosts([]); // Clear posts on new search
+                setHasMore(true);
 
-            // Save valid search to history
-            const trimmedQuery = searchQuery.trim();
-            if (trimmedQuery && !recentSearches.includes(trimmedQuery) && trimmedQuery.length > 2) {
-                const updated = [trimmedQuery, ...recentSearches].slice(0, 5);
-                setRecentSearches(updated);
-                localStorage.setItem('recentSearches', JSON.stringify(updated));
+                // Save valid search to history
+                const trimmedQuery = searchQuery.trim();
+                setRecentSearches(prevSearches => {
+                    if (trimmedQuery && !prevSearches.includes(trimmedQuery) && trimmedQuery.length > 2) {
+                        const updated = [trimmedQuery, ...prevSearches].slice(0, 5);
+                        localStorage.setItem('recentSearches', JSON.stringify(updated));
+                        return updated;
+                    }
+                    return prevSearches;
+                });
             }
         }, 500);
 
         return () => clearTimeout(timerId);
-    }, [searchQuery]);
+    }, [searchQuery, debouncedQuery]);
 
     const removeRecentSearch = (search: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -128,12 +136,24 @@ export const ExplorePage = () => {
         fetchExplorePosts(page, debouncedQuery, timeRange, language, minEngagement);
     }, [page, debouncedQuery, timeRange, language, minEngagement]);
 
+    const filtersMounted = useRef(false);
     // When filters change, reset back to page 1
     useEffect(() => {
+        if (!filtersMounted.current) {
+            filtersMounted.current = true;
+            return;
+        }
         setPage(1);
         setPosts([]);
         setHasMore(true);
     }, [timeRange, language, minEngagement]);
+
+    // Fetch trending hashtags on mount
+    useEffect(() => {
+        getTrendingHashtags(10)
+            .then(tags => setTrendingHashtags(tags))
+            .catch(err => console.error("Failed to fetch trending tags", err));
+    }, []);
 
     return (
         <div className="page-container animate-fade-in pb-12">
@@ -360,16 +380,35 @@ export const ExplorePage = () => {
             )}
 
             {/* Trending Tags Section (Visual Polish) */}
-            {!debouncedQuery && posts.length > 0 && page === 1 && (
+            {!debouncedQuery && posts.length > 0 && page === 1 && trendingHashtags.length > 0 && (
                 <div className="mb-8 flex gap-3 overflow-x-auto pb-2 scrollbar-none fade-in-up" style={{ animationDelay: '0.1s' }}>
-                    {['technology', 'design', 'development', 'startup', 'web3'].map((tag) => (
+                    {trendingHashtags.map((tagObj) => (
                         <button 
-                            key={tag}
-                            onClick={() => setSearchQuery(tag)}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-gray-900/40 hover:bg-gray-800/80 rounded-xl text-gray-300 hover:text-white transition-all whitespace-nowrap border border-gray-800 hover:border-gray-700 active:scale-95"
+                            key={tagObj.tag}
+                            onClick={() => setSearchQuery('#' + tagObj.tag)}
+                            className="flex items-center gap-1.5 px-4 py-2 transition-all whitespace-nowrap active:scale-95 group"
+                            style={{
+                                background: 'rgba(30, 41, 59, 0.4)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '0.75rem',
+                                color: '#d1d5db',
+                                cursor: 'pointer',
+                                fontSize: '0.95rem'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)';
+                                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                                e.currentTarget.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(30, 41, 59, 0.4)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                e.currentTarget.style.color = '#d1d5db';
+                            }}
                         >
-                            <Hash size={14} className="text-[#c4b5fd]" />
-                            <span className="font-medium">{tag}</span>
+                            <Hash size={14} className="text-[#c4b5fd] group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">{tagObj.tag}</span>
+                            <span className="text-[10px] text-gray-500 ml-1">({tagObj.count})</span>
                         </button>
                     ))}
                 </div>

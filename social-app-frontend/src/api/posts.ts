@@ -191,3 +191,13 @@ export const reportPost = async (postId: string, reason: string) => {
     }
     return response.json();
 };
+
+export const getTrendingHashtags = async (limit: number = 10) => {
+    const response = await fetch(`${API_URL}/trending/hashtags?limit=${limit}`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch trending hashtags');
+    }
+    return response.json();
+};

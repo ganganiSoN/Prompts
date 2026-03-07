@@ -58,12 +58,17 @@ const postSchema = new mongoose.Schema({
         reposts: { type: Number, default: 0 },
         bookmarks: { type: Number, default: 0 },
         shares: { type: Number, default: 0 }
-    }
+    },
+    hashtags: [{ 
+        type: String, 
+        lowercase: true, 
+        trim: true 
+    }]
 }, { timestamps: true });
 
-// Optional: Indexing for fast feed query
 postSchema.index({ status: 1, createdAt: -1 });
 postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ status: 1, community: 1, createdAt: -1 }); // Optimized for filtered feed
+postSchema.index({ hashtags: 1, createdAt: -1 }); // Fast hashtag timeline queries
 
 module.exports = mongoose.model('Post', postSchema);
