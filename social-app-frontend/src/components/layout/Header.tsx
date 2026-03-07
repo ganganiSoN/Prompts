@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut, Bell, Search } from 'lucide-react';
+import './Header.css';
+
 
 const Header = () => {
     const { user, logout } = useAuth();

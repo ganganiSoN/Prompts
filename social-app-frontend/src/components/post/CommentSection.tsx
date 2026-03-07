@@ -3,6 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { engageWithPost, getPostComments } from '../../api/posts';
 import { CommentItem, type CommentType } from './CommentItem';
 import { MessageSquare, Loader2 } from 'lucide-react';
+import './CommentSection.css';
+
 
 interface CommentSectionProps {
     postId: string;

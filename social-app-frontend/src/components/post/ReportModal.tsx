@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, ShieldAlert } from 'lucide-react';
 import { reportPost } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
+import '../ui/Modal.css';
+
 
 interface ReportModalProps {
     postId: string;

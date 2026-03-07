@@ -20,6 +20,8 @@ import { CommentSection } from './CommentSection';
 import { RichTextEditor } from './RichTextEditor';
 import { ReportModal } from './ReportModal';
 import type { PostPayload } from './RichTextEditor';
+import './PostCard.css';
+
 
 interface PostProps {
     post: any;

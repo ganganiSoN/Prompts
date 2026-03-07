@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { CheckCircle, XCircle, X } from 'lucide-react';
+import '../components/ui/Toast.css';
+
 
 export type ToastType = 'success' | 'error' | 'info';
 

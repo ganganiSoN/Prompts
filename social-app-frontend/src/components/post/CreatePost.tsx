@@ -4,6 +4,10 @@ import { createPost } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
 import { RichTextEditor } from './RichTextEditor';
 import type { PostPayload } from './RichTextEditor';
+import './CreatePost.css';
+import './PollCreator.css';
+
+
 
 interface CreatePostProps {
     onPostCreated: (post: any) => void;

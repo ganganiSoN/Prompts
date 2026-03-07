@@ -23,11 +23,40 @@ export const getCreatorAnalytics = async () => {
         method: 'GET',
         headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch analytics');
     }
-    
+
+    return response.json();
+};
+
+export interface AdminAnalyticsData {
+    activeUsers: number;
+    flaggedContentRatio: number;
+    moderationSLAHours: number;
+    abuseMetrics: {
+        _id: string; // The reason enum
+        count: number;
+    }[];
+    trendingTopics: {
+        _id: string; // The community name
+        totalEngagement: number;
+        postCount: number;
+    }[];
+}
+
+export const getAdminAnalytics = async (): Promise<AdminAnalyticsData> => {
+    const response = await fetch(`${API_URL}/overview`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch admin dashboard metrics');
+    }
+
     return response.json();
 };

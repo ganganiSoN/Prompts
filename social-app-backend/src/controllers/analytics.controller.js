@@ -13,8 +13,8 @@ exports.getCreatorMetrics = async (req, res) => {
         // 1. Overview Stats (Total Posts, Total Engagement)
         const postsAggregation = await Post.aggregate([
             { $match: { author: userId } },
-            { 
-                $group: { 
+            {
+                $group: {
                     _id: null,
                     totalPosts: { $sum: 1 },
                     totalLikes: { $sum: "$engagementCount.likes" },
@@ -32,11 +32,13 @@ exports.getCreatorMetrics = async (req, res) => {
 
         // 2. Follower Growth Pipeline (Last 30 Days)
         const followerGrowth = await Engagement.aggregate([
-            { $match: { 
-                targetUser: userId, 
-                type: 'follow',
-                createdAt: { $gte: thirtyDaysAgo }
-            }},
+            {
+                $match: {
+                    targetUser: userId,
+                    type: 'follow',
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
             {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -63,7 +65,7 @@ exports.getCreatorMetrics = async (req, res) => {
                 $project: {
                     dayOfWeek: { $dayOfWeek: "$createdAt" }, // 1 (Sun) to 7 (Sat)
                     hourOfDay: { $hour: "$createdAt" },      // 0 to 23
-                    engagement: { 
+                    engagement: {
                         $add: [
                             { $ifNull: ["$engagementCount.likes", 0] },
                             { $ifNull: ["$engagementCount.comments", 0] },
@@ -106,5 +108,94 @@ exports.getCreatorMetrics = async (req, res) => {
     } catch (error) {
         console.error('Error fetching creator analytics:', error);
         res.status(500).json({ message: error.stack || error.message, error: error.toString() });
+    }
+};
+
+exports.getAdminOverview = async (req, res) => {
+    try {
+        const Report = require('../models/Report'); // Import needed
+
+        // 1. Active Users (Users who logged in or created an account recently)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const activeUsers = await User.countDocuments({
+            $or: [
+                { createdAt: { $gte: thirtyDaysAgo } },
+                { updatedAt: { $gte: thirtyDaysAgo } }
+            ],
+            status: 'ACTIVE'
+        });
+
+        // 2. Flagged Content Ratio
+        const totalPosts = await Post.countDocuments();
+        const flaggedPosts = await Post.countDocuments({ status: { $in: ['FLAGGED', 'UNDER_REVIEW', 'REMOVED'] } });
+        const flaggedContentRatio = totalPosts > 0 ? ((flaggedPosts / totalPosts) * 100).toFixed(2) : 0;
+
+        // 3. Moderation SLA (Average time between Report creation and Decision)
+        const resolvedReports = await Report.aggregate([
+            { $match: { status: { $in: ['CLOSED', 'DECISION'] }, updatedAt: { $exists: true } } },
+            {
+                $project: {
+                    resolutionTimeMs: { $subtract: ["$updatedAt", "$createdAt"] }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgResolutionTime: { $avg: "$resolutionTimeMs" }
+                }
+            }
+        ]);
+
+        const avgResolutionHours = resolvedReports.length > 0
+            ? (resolvedReports[0].avgResolutionTime / (1000 * 60 * 60)).toFixed(1)
+            : 0;
+
+        // 4. Abuse Metrics (Breakdown by report reason)
+        const abuseMetrics = await Report.aggregate([
+            {
+                $group: {
+                    _id: "$reason",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        // 5. Trending Topics (Simple aggregation based on recent post engagement)
+        // Since we don't have explicit hashtag arrays yet, we'll aggregate by community
+        const trendingTopics = await Post.aggregate([
+            { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+            {
+                $group: {
+                    _id: "$community",
+                    totalEngagement: {
+                        $sum: {
+                            $add: [
+                                { $ifNull: ["$engagementCount.likes", 0] },
+                                { $ifNull: ["$engagementCount.comments", 0] },
+                                { $ifNull: ["$engagementCount.reposts", 0] }
+                            ]
+                        }
+                    },
+                    postCount: { $sum: 1 }
+                }
+            },
+            { $sort: { totalEngagement: -1 } },
+            { $limit: 5 }
+        ]);
+
+        res.status(200).json({
+            activeUsers,
+            flaggedContentRatio: parseFloat(flaggedContentRatio),
+            moderationSLAHours: parseFloat(avgResolutionHours),
+            abuseMetrics,
+            trendingTopics
+        });
+
+    } catch (error) {
+        console.error('Error fetching admin analytics overview:', error);
+        res.status(500).json({ message: 'Error fetching admin metrics' });
     }
 };

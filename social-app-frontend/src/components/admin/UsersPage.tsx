@@ -4,6 +4,7 @@ import { getUsers } from '../../api/users';
 import { Search, Shield, User as UserIcon, Calendar, ArrowUpRight } from 'lucide-react';
 import type { User } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import '../user/UserSuggestion.css';
 
 const UsersPage = () => {
     const navigate = useNavigate();

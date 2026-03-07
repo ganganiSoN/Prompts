@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import './Sidebar.css';
+
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -13,11 +15,6 @@ const Sidebar = () => {
     { name: 'Drafts', path: '/drafts', icon: <Bookmark size={20} /> },
     { name: 'Community', path: '/community', icon: <Users size={20} /> },
   ];
-
-
-  navLinks.push({ name: 'Analytics', path: '/analytics', icon: <BarChart2 size={20} /> });
-  navLinks.push({ name: 'Users', path: '/users', icon: <Shield size={20} /> });
-  navLinks.push({ name: 'Settings', path: '/settings', icon: <Settings size={20} /> });
 
   return (
     <aside className="sidebar glass-card">
@@ -64,6 +61,18 @@ const Sidebar = () => {
             <span className="nav-icon"><ShieldAlert size={20} /></span>
             <span className="nav-text flex-1">Moderation</span>
             <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
+          </NavLink>
+        )}
+
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/analytics"
+            className={({ isActive }) =>
+              `nav-link ${isActive ? 'active' : ''}`
+            }
+          >
+            <span className="nav-icon"><BarChart2 size={20} /></span>
+            <span className="nav-text">Analytics</span>
           </NavLink>
         )}
 

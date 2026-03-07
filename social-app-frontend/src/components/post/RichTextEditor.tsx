@@ -8,6 +8,8 @@ import {
     Bold, Italic, List, Link as LinkIcon, Heading2, Underline as UnderlineIcon,
     Image as ImageIcon, Video as VideoIcon, BarChart2, Calendar, X, Plus
 } from 'lucide-react';
+import './RichTextEditor.css';
+
 
 export interface PostPayload {
     content: string;
