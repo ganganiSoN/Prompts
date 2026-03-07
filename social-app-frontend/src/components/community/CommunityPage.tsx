@@ -268,8 +268,12 @@ const CommunityCard = ({ community, user, navigate, handleToggleJoin }: any) => 
             onClick={() => navigate(`/community/${community._id}`)}
         >
             <div className="flex justify-between items-start mb-4">
-                <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold' }}>
-                    {community.name.substring(0, 2).toUpperCase()}
+                <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold', position: 'relative', overflow: 'hidden' }}>
+                    {community.coverImage ? (
+                        <img src={community.coverImage} alt={community.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        community.name.substring(0, 2).toUpperCase()
+                    )}
                 </div>
                 {community.trending && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>

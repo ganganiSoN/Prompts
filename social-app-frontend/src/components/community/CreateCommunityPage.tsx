@@ -12,8 +12,24 @@ const CreateCommunityPage = () => {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        tags: ''
+        tags: '',
+        coverImage: ''
     });
+
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (event.target?.result) {
+                setFormData({ ...formData, coverImage: event.target.result as string });
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -58,12 +74,28 @@ const CreateCommunityPage = () => {
 
             <div className="glass-card mt-6" style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <div className="flex flex-col items-center mb-8">
-                    <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)' }}>
-                        <ImageIcon size={32} />
+                    <div className="avatar large" style={{ background: 'var(--surface-highlight)', color: 'var(--primary)', position: 'relative', overflow: 'hidden' }}>
+                        {formData.coverImage ? (
+                            <img src={formData.coverImage} alt="Cover Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <ImageIcon size={32} />
+                        )}
                     </div>
-                    <button className="btn btn-outline mt-4" style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                        Upload Cover Image
+                    <button 
+                        type="button" 
+                        className="btn btn-outline mt-4" 
+                        style={{ width: 'auto', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        {formData.coverImage ? 'Change Cover Image' : 'Upload Cover Image'}
                     </button>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        style={{ display: 'none' }}
+                        accept="image/*" 
+                        onChange={handleImageUpload} 
+                    />
                 </div>
 
                 <form onSubmit={handleSubmit}>

@@ -2,22 +2,12 @@ import React, { useState } from 'react';
 import {
     Heart,
     MessageSquare,
-    Share2,
     Repeat2,
     Bookmark,
     MoreHorizontal,
     BarChart2,
     Edit2,
     AlertTriangle,
-    Eye,
-    Image as ImageIcon,
-    Video as VideoIcon,
-    Check,
-    ExternalLink,
-    Calendar,
-    MapPin,
-    Hash,
-    CheckCircle2,
     CalendarClock,
     Trash2,
     Share
@@ -95,7 +85,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
             return (
                 <div className="mb-4 mt-2">
-                    {post.content && <div className="post-content-area rich-text-content mb-3" dangerouslySetInnerHTML={{ __html: post.content }} />}
+                    {post.content && <div className="post-content-area rich-text-content mb-3" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: post.content }} />}
                     <div className="border border-indigo-100 dark:border-gray-700 rounded-xl p-4 bg-white/50 dark:bg-gray-800/40 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-gray-600 transition-colors">
                         <div className="flex items-center gap-2 mb-3">
                             <div className="post-avatar w-6 h-6 text-[10px]">
@@ -104,7 +94,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                             <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{original.author?.email?.split('@')[0]}</span>
                             <span className="text-xs text-gray-500">· {new Date(original.createdAt).toLocaleDateString()}</span>
                         </div>
-                        <div className="text-sm text-gray-800 dark:text-gray-300 line-clamp-5">
+                        <div className="text-sm text-gray-800 dark:text-gray-300 line-clamp-5" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                             {original.content ? (
                                 <div dangerouslySetInnerHTML={{ __html: original.content }} className="rich-text-content" />
                             ) : (
@@ -131,7 +121,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
             return (
                 <div className="mt-3">
-                    {textContent && <div className="text-gray-800 dark:text-gray-100 mb-3 whitespace-pre-wrap rich-text-content" dangerouslySetInnerHTML={{ __html: textContent }} />}
+                    {textContent && <div className="text-gray-800 dark:text-gray-100 mb-3 whitespace-pre-wrap rich-text-content" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: textContent }} />}
                     {mediaUrl && (
                         <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 relative">
                             {post.type === 'image' ? (
@@ -145,7 +135,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             );
         }
 
-        const baseContent = <div className="post-content-area rich-text-content" dangerouslySetInnerHTML={{ __html: post.content }} />;
+        const baseContent = <div className="post-content-area rich-text-content" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: post.content }} />;
 
         // Handle Poll UI Rendering
         if (post.type === 'poll' && post.poll) {

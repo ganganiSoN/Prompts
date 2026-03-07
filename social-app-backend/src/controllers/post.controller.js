@@ -420,6 +420,74 @@ exports.getDrafts = async (req, res) => {
         res.status(200).json(drafts);
     } catch (error) {
         console.error('Error fetching drafts:', error);
+    }
+};
+// Get Explore/Trending Feed
+exports.getExplore = async (req, res) => {
+    try {
+        const { page = 1, limit = 20, search, timeRange, language, minEngagement } = req.query;
+        let query = { status: 'PUBLISHED' };
+
+        // 1. Keyword Search
+        if (search) {
+            query.$or = [
+                { content: { $regex: search, $options: 'i' } },
+                { 'poll.question': { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 2. Language Filter
+        if (language && language !== 'all') {
+            query.language = language;
+        }
+
+        // 3. Date Range Filter
+        if (timeRange && timeRange !== 'all') {
+            const now = new Date();
+            let startDate = new Date();
+
+            if (timeRange === '24h') startDate.setHours(now.getHours() - 24);
+            else if (timeRange === '7d') startDate.setDate(now.getDate() - 7);
+            else if (timeRange === '30d') startDate.setDate(now.getDate() - 30);
+
+            query.createdAt = { $gte: startDate };
+        }
+
+        // 4. Minimum Engagement Filter (Likes + Comments threshold)
+        if (minEngagement && !isNaN(parseInt(minEngagement))) {
+            const threshold = parseInt(minEngagement);
+            if (threshold > 0) {
+                // Use MongoDB aggregation expression to sum likes and comments
+                query.$expr = {
+                    $gte: [
+                        { $add: ["$engagementCount.likes", "$engagementCount.comments"] },
+                        threshold
+                    ]
+                };
+            }
+        }
+
+        // Base sorting on engagement (likes + comments) to simulate trending
+        let sortConfig = { createdAt: -1 };
+        if (!search) {
+            // If no search, sort absolutely by trending magnitude
+            sortConfig = { 'engagementCount.likes': -1, 'engagementCount.comments': -1, createdAt: -1 };
+        }
+
+        const posts = await Post.find(query)
+            .sort(sortConfig)
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit))
+            .populate('author', 'email _id name avatar')
+            .populate({
+                path: 'originalPost',
+                populate: { path: 'author', select: 'email _id name avatar' }
+            })
+            .exec();
+
+        res.status(200).json(posts);
+    } catch (error) {
+        console.error('Error fetching explore feed:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };

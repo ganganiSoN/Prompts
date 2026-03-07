@@ -5,7 +5,7 @@ const Community = require('../models/Community');
 // @access  Private
 const createCommunity = async (req, res) => {
     try {
-        const { name, description, tags } = req.body;
+        const { name, description, tags, coverImage } = req.body;
 
         // Check if community with same name exists
         const communityExists = await Community.findOne({ name });
@@ -27,6 +27,7 @@ const createCommunity = async (req, res) => {
             name,
             description,
             tags: processedTags,
+            coverImage: coverImage || '',
             creator: creatorId,
             members: [creatorId], // Creator is automatically the first member
             memberCount: 1
