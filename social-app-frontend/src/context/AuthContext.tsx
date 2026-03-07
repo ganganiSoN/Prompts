@@ -8,6 +8,7 @@ interface User {
     website?: string;
     location?: string;
     interests?: string[];
+    role: 'admin' | 'moderator' | 'user';
 }
 
 interface AuthContextType {

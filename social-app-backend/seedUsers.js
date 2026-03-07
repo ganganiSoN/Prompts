@@ -58,6 +58,9 @@ const generateUsers = async () => {
             const pastDate = new Date();
             pastDate.setDate(pastDate.getDate() - Math.floor(Math.random() * 365));
 
+            // Role assignment: 80% user, 20% moderator
+            const assignedRole = Math.random() < 0.2 ? 'moderator' : 'user';
+
             usersToInsert.push({
                 email,
                 name,
@@ -65,6 +68,7 @@ const generateUsers = async () => {
                 bio,
                 location,
                 interests: userInterests,
+                role: assignedRole,
                 hasAcceptedTerms: true,
                 isEmailVerified: Math.random() > 0.3, // 70% chance of verified
                 createdAt: pastDate,

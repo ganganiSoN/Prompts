@@ -4,8 +4,8 @@ const User = require('../models/User');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_temporary_jwt_secret';
 const MFA_MOCK_REQUIRED = true; // For demonstration, default to requiring MFA if local login
 
-const generateToken = (userId, email) => {
-    return jwt.sign({ id: userId, email }, JWT_SECRET, {
+const generateToken = (userId, email, role = 'user') => {
+    return jwt.sign({ id: userId, email, role }, JWT_SECRET, {
         expiresIn: '7d',
     });
 };
@@ -64,8 +64,8 @@ exports.login = async (req, res) => {
                 });
                 await user.save();
             }
-            const token = generateToken(user._id, user.email);
-            return res.json({ token, user: { id: user._id, email: user.email } });
+            const token = generateToken(user._id, user.email, user.role);
+            return res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
         }
 
         // Handle Local Login
@@ -94,8 +94,8 @@ exports.login = async (req, res) => {
             });
         }
 
-        const token = generateToken(user._id, user.email);
-        res.json({ token, user: { id: user._id, email: user.email } });
+        const token = generateToken(user._id, user.email, user.role);
+        res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -114,7 +114,7 @@ exports.verifyEmail = async (req, res) => {
         user.verificationToken = undefined;
         await user.save();
 
-        const jwtToken = generateToken(user._id, user.email);
+        const jwtToken = generateToken(user._id, user.email, user.role);
         res.json({ message: 'Email verified successfully', token: jwtToken });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -144,8 +144,8 @@ exports.verifyMfa = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const token = generateToken(user._id, user.email);
-        res.json({ token, user: { id: user._id, email: user.email } });
+        const token = generateToken(user._id, user.email, user.role);
+        res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }

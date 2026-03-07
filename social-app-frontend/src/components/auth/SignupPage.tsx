@@ -46,7 +46,7 @@ const SignupPage = () => {
         try {
             const data = await verifyEmailApi({ token: verificationCode, email });
             if (data.token) {
-                authenticate({ id: 'temp', email: email, name: email.split('@')[0] }, data.token); // Mock user obj for now
+                authenticate({ id: 'temp', email: email, name: email.split('@')[0], role: 'user' }, data.token); // Mock user obj for now
                 success('Email verified successfully!');
                 navigate('/');
             } else {
