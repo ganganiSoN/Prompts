@@ -381,7 +381,7 @@ exports.updatePost = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;
-        const { content } = req.body;
+        const { content, status } = req.body;
 
         const post = await Post.findById(id);
 
@@ -394,8 +394,9 @@ exports.updatePost = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to update this post' });
         }
 
-        // Only allow text/content updates for now (poll editing usually not allowed)
-        post.content = content !== undefined ? content : post.content;
+        // Only allow text/content updates and status transitions (e.g., DRAFT to PUBLISHED)
+        if (content !== undefined) post.content = content;
+        if (status !== undefined) post.status = status;
 
         await post.save();
 

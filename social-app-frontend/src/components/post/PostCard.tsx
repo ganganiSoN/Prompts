@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Heart,
     MessageSquare,
@@ -20,7 +20,8 @@ import {
     CheckCircle2,
     CalendarClock,
     Trash2,
-    Share
+    Share,
+    Send
 } from 'lucide-react';
 import { engageWithPost, repostPost, deletePost, updatePost, voteOnPoll } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
@@ -42,6 +43,23 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isDeleted, setIsDeleted] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const optionsMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+                setShowOptions(false);
+            }
+        };
+
+        if (showOptions) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showOptions]);
 
     const getInitialEditPayload = () => {
         let content = post.content || '';
@@ -183,8 +201,9 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                                     <button
                                         key={idx}
                                         onClick={() => handlePollVote(idx)}
-                                        className="poll-option-btn group hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all w-full text-left"
-                                        title={user ? "Click to vote" : "Login to vote"}
+                                        disabled={post.status === 'DRAFT'}
+                                        className={`poll-option-btn group transition-all w-full text-left ${post.status === 'DRAFT' ? 'opacity-70 cursor-not-allowed' : 'hover:border-indigo-500/50 hover:bg-indigo-500/5'}`}
+                                        title={post.status === 'DRAFT' ? "Cannot vote on drafts" : (user ? "Click to vote" : "Login to vote")}
                                     >
                                         <div
                                             className="poll-option-progress bg-indigo-600/20"
@@ -384,7 +403,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                 </div>
 
                 {isAuthor && (
-                    <div className="relative">
+                    <div className="relative" ref={optionsMenuRef}>
                         <button
                             className="post-options-btn"
                             onClick={(e) => {
@@ -398,6 +417,25 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                         {/* Dropdown Menu */}
                         {showOptions && (
                             <div className="post-options-dropdown">
+                                {post.status === 'DRAFT' && (
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                                await updatePost(post._id, post.content, 'PUBLISHED');
+                                                success('Draft published successfully!');
+                                                post.status = 'PUBLISHED';
+                                                setShowOptions(false);
+                                            } catch (err: any) {
+                                                showError(err.message || 'Failed to publish draft');
+                                            }
+                                        }}
+                                        className="post-options-dropdown-item text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10"
+                                    >
+                                        <Send size={16} />
+                                        Publish Draft
+                                    </button>
+                                )}
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -459,40 +497,42 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                 renderContent()
             )}
 
-            <div className="post-actions">
-                <button title="Comment" onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} className={`post-action-btn comment ${showComments ? 'text-indigo-500' : ''}`}>
-                    <div className={`post-action-icon ${showComments ? 'bg-indigo-500/10' : ''}`}>
-                        <MessageSquare size={18} />
-                    </div>
-                    <span>{counts.comments || 0}</span>
-                </button>
+            {post.status !== 'DRAFT' && (
+                <div className="post-actions">
+                    <button title="Comment" onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }} className={`post-action-btn comment ${showComments ? 'text-indigo-500' : ''}`}>
+                        <div className={`post-action-icon ${showComments ? 'bg-indigo-500/10' : ''}`}>
+                            <MessageSquare size={18} />
+                        </div>
+                        <span>{counts.comments || 0}</span>
+                    </button>
 
-                <button title="Repost" onClick={(e) => { e.stopPropagation(); handleEngage('repost'); }} className="post-action-btn repost">
-                    <div className="post-action-icon">
-                        <Repeat2 size={18} />
-                    </div>
-                    <span>{counts.reposts || 0}</span>
-                </button>
+                    <button title="Repost" onClick={(e) => { e.stopPropagation(); handleEngage('repost'); }} className="post-action-btn repost">
+                        <div className="post-action-icon">
+                            <Repeat2 size={18} />
+                        </div>
+                        <span>{counts.reposts || 0}</span>
+                    </button>
 
-                <button title={isLiked ? "Unlike" : "Like"} onClick={(e) => { e.stopPropagation(); handleEngage('like'); }} className={`post-action-btn like ${isLiked ? 'active' : ''}`}>
-                    <div className="post-action-icon">
-                        <Heart size={18} className={isLiked ? "fill-current" : ""} />
-                    </div>
-                    <span>{counts.likes || 0}</span>
-                </button>
+                    <button title={isLiked ? "Unlike" : "Like"} onClick={(e) => { e.stopPropagation(); handleEngage('like'); }} className={`post-action-btn like ${isLiked ? 'active' : ''}`}>
+                        <div className="post-action-icon">
+                            <Heart size={18} className={isLiked ? "fill-current" : ""} />
+                        </div>
+                        <span>{counts.likes || 0}</span>
+                    </button>
 
-                <button title={isBookmarked ? "Remove Bookmark" : "Bookmark"} onClick={(e) => { e.stopPropagation(); handleEngage('bookmark'); }} className={`post-action-btn bookmark ${isBookmarked ? 'active' : ''}`}>
-                    <div className="post-action-icon">
-                        <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
-                    </div>
-                </button>
+                    <button title={isBookmarked ? "Remove Bookmark" : "Bookmark"} onClick={(e) => { e.stopPropagation(); handleEngage('bookmark'); }} className={`post-action-btn bookmark ${isBookmarked ? 'active' : ''}`}>
+                        <div className="post-action-icon">
+                            <Bookmark size={18} className={isBookmarked ? "fill-current" : ""} />
+                        </div>
+                    </button>
 
-                <button title="Share Post" onClick={(e) => { e.stopPropagation(); handleEngage('share'); }} className="post-action-btn share">
-                    <div className="post-action-icon">
-                        <Share size={18} />
-                    </div>
-                </button>
-            </div>
+                    <button title="Share Post" onClick={(e) => { e.stopPropagation(); handleEngage('share'); }} className="post-action-btn share">
+                        <div className="post-action-icon">
+                            <Share size={18} />
+                        </div>
+                    </button>
+                </div>
+            )}
 
             {/* Comment Section Expand/Collapse */}
             {showComments && (

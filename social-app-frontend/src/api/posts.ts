@@ -55,6 +55,18 @@ export const getFeed = async (page = 1, limit = 20, community?: string, followin
     return response.json();
 };
 
+export const getDrafts = async () => {
+    const response = await fetch(`${API_URL}/drafts`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch drafts');
+    }
+    return response.json();
+};
+
 export const engageWithPost = async (postId: string, type: string, content?: string, parentEngagementId?: string) => {
     const response = await fetch(`${API_URL}/${postId}/engage`, {
         method: 'POST',
@@ -118,11 +130,14 @@ export const deletePost = async (postId: string) => {
     return response.json();
 };
 
-export const updatePost = async (postId: string, content: string) => {
+export const updatePost = async (postId: string, content: string, status?: string) => {
+    const payload: any = { content };
+    if (status) payload.status = status;
+
     const response = await fetch(`${API_URL}/${postId}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ content })
+        body: JSON.stringify(payload)
     });
     if (!response.ok) {
         const error = await response.json();

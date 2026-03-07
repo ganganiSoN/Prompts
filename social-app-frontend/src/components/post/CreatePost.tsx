@@ -71,8 +71,10 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
             // Reset
             setPayload({ content: '' });
             setCommunity(defaultCommunity || '');
-            success(backendPostData.isScheduled ? 'Post scheduled successfully!' : 'Post published successfully!');
-            onPostCreated(newPost);
+            success(backendPostData.status === 'DRAFT' ? 'Draft saved successfully!' : (backendPostData.isScheduled ? 'Post scheduled successfully!' : 'Post published successfully!'));
+            if (backendPostData.status !== 'DRAFT') {
+                onPostCreated(newPost);
+            }
         } catch (err: any) {
             setError(err.message);
             showError(err.message || 'Failed to publish post');
