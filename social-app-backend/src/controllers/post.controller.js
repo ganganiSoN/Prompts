@@ -549,54 +549,166 @@ exports.reportPost = async (req, res) => {
         const reporterId = req.user.userId;
         const { reason } = req.body;
 
-        const post = await Post.findById(id);
-        if (!post) {
-            return res.status(404).json({ message: 'Post not found' });
-        }
+        // 1. Immediately return a 202 Accepted response
+        res.status(202).json({ message: 'Report received and is being processed.' });
 
-        // Auto-Risk Scoring Rules
-        let aiToxicityScore = 0;
-        if (['Hate Speech', 'Harassment', 'NSFW'].includes(reason)) {
-            // Mocking an AI toxicity score
-            aiToxicityScore = 0.5 + Math.random() * 0.5; // Between 0.5 and 1.0
-        } else {
-            aiToxicityScore = Math.random() * 0.5;
-        }
+        const io = req.app.get('io');
 
-        let reportStatus = 'AUTO_RISK_SCORING';
-
-        // IF AI_toxicity_score > 0.85 THEN auto_flag
-        if (aiToxicityScore > 0.85) {
-            post.status = 'FLAGGED';
-            await post.save();
-        }
-
-        const report = new Report({
-            post: id,
-            reporter: reporterId,
-            reason,
-            status: reportStatus,
-            aiToxicityScore
+        // 2. Call a background asynchronous function
+        processPostReport(io, id, reporterId, reason).catch(err => {
+            console.error('Background AI scoring error:', err);
         });
 
-        await report.save();
+    } catch (error) {
+        if (!res.headersSent) {
+            console.error('Error reporting post:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }
+};
 
-        // IF reports_count > 5 THEN escalate_to_senior_moderator
-        const reportsCount = await Report.countDocuments({ post: id });
-        if (reportsCount > 5) {
-            report.status = 'ESCALATED'; // Or specifically route to senior moderator
-            await report.save();
+const toxicity = require('@tensorflow-models/toxicity');
+const nsfwjs = require('nsfwjs');
+let tf;
+try {
+    tf = require('@tensorflow/tfjs-node');
+} catch (e) {
+    console.warn('tfjs-node is not available. Image NSFW scoring will be skipped.');
+}
+const mongoose = require('mongoose');
 
-            // Optionally pull from feed by putting under review
-            if (post.status !== 'UNDER_REVIEW') {
-                post.status = 'UNDER_REVIEW';
-                await post.save();
+async function processPostReport(io, postId, reporterId, reason) {
+    try {
+        // Fetch the post from the posts collection using the native MongoDB driver
+        const db = mongoose.connection.db;
+        const postsCollection = db.collection('posts');
+
+        const postDoc = await postsCollection.findOne({ _id: new mongoose.Types.ObjectId(postId) });
+        if (!postDoc) return;
+
+        let textScore = 0;
+        let imageScore = 0;
+
+        // Text Scoring: Pass the post text through the @tensorflow-models/toxicity model
+        if (postDoc.content && typeof postDoc.content === 'string') {
+            try {
+                const plainText = postDoc.content.replace(/<[^>]*>?/gm, '');
+                const toxicityModel = await toxicity.load(0.5);
+                const predictions = await toxicityModel.classify([plainText]);
+
+                let maxProb = 0;
+                predictions.forEach(p => {
+                    const matchProb = p.results[0]?.probabilities[1];
+                    if (matchProb > maxProb) maxProb = matchProb;
+                });
+                textScore = maxProb * 100; // 0-100 severity score
+            } catch (err) {
+                console.error('Toxicity scoring error:', err);
             }
         }
 
-        res.status(201).json({ message: 'Report submitted successfully', report });
-    } catch (error) {
-        console.error('Error reporting post:', error);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        // Image Scoring: If post type is image and contains an image URL, pass to nsfwjs
+        let imageUrl = null;
+        if (postDoc.type === 'image' && postDoc.content) {
+            const lines = postDoc.content.split('\n').map(l => l.trim());
+            const urlLine = lines.find(l => l.startsWith('data:image') || l.startsWith('http'));
+            if (urlLine) imageUrl = urlLine;
+        }
+
+        if (imageUrl && tf) {
+            try {
+                const model = await nsfwjs.load();
+                let decodedImage;
+
+                if (imageUrl.startsWith('data:image')) {
+                    const base64Data = imageUrl.split(',')[1];
+                    const imageBuffer = Buffer.from(base64Data, 'base64');
+                    decodedImage = tf.node.decodeImage(imageBuffer, 3);
+                } else if (imageUrl.startsWith('http')) {
+                    const response = await fetch(imageUrl);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const imageBuffer = Buffer.from(arrayBuffer);
+                    decodedImage = tf.node.decodeImage(imageBuffer, 3);
+                }
+
+                if (decodedImage) {
+                    const predictions = await model.classify(decodedImage);
+                    decodedImage.dispose();
+
+                    // Assign severity score based on 'Porn' or 'Hentai' probabilities
+                    predictions.forEach(p => {
+                        if (p.className === 'Porn' || p.className === 'Hentai') {
+                            const score = p.probability * 100;
+                            if (score > imageScore) imageScore = score;
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('NSFWJS scoring error:', err);
+            }
+        }
+
+        // Combine into a total_toxicity_score
+        const total_toxicity_score = Math.max(textScore, imageScore);
+
+        // Database Updates (Native MongoDB Driver)
+        let newStatus = postDoc.status;
+        let moderationReasons = [reason];
+
+        const updates = {
+            $set: {
+                ai_toxicity_score: total_toxicity_score
+            }
+        };
+
+        if (total_toxicity_score > 80) {
+            newStatus = 'quarantined';
+            moderationReasons.push('High AI Toxicity Score (nsfwjs/toxicity)');
+            updates.$set.status = newStatus;
+            updates.$set.moderation_reasons = moderationReasons;
+        } else if (total_toxicity_score > 40 && total_toxicity_score <= 80) {
+            newStatus = 'pending_review';
+            updates.$set.status = newStatus;
+        }
+
+        await postsCollection.updateOne(
+            { _id: new mongoose.Types.ObjectId(postId) },
+            updates
+        );
+
+        // Record the report in the reports collection
+        const reportsCollection = db.collection('reports');
+        await reportsCollection.insertOne({
+            post: new mongoose.Types.ObjectId(postId),
+            reporter: new mongoose.Types.ObjectId(reporterId),
+            reason,
+            status: total_toxicity_score > 80 ? 'AUTO_RISK_SCORING' : 'SUBMITTED',
+            ai_toxicity_score: total_toxicity_score,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        // Socket.io Event Emitting
+        if (io) {
+            if (total_toxicity_score > 85) {
+                // Emit a post_quarantined event to the main feed room
+                io.to('main_feed').emit('post_quarantined', {
+                    postId: postId.toString()
+                });
+            }
+            if (total_toxicity_score > 45) {
+                // Attach the moderation items to the emitted post object
+                const emittedPost = { ...postDoc, status: newStatus, ai_toxicity_score: total_toxicity_score, moderation_reasons: moderationReasons };
+
+                // Emit a new_mod_ticket event specifically to the Moderator Dashboard socket room
+                io.to('moderator_dashboard').emit('new_mod_ticket', {
+                    post: emittedPost,
+                    ai_toxicity_score: total_toxicity_score,
+                    moderation_reasons: moderationReasons
+                });
+            }
+        }
+    } catch (err) {
+        console.error('Error in processPostReport:', err);
     }
-};
+}

@@ -11,11 +11,11 @@ export const ExplorePage = () => {
     const [hasMore, setHasMore] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
-    
+
     // Explorable Suggested Content
     const [suggestedPosts, setSuggestedPosts] = useState<any[]>([]);
     const [loadingSuggested, setLoadingSuggested] = useState(false);
-    
+
     // Suggested Profiles Grid
     const [suggestedProfiles, setSuggestedProfiles] = useState<any[]>([]);
     const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -25,7 +25,7 @@ export const ExplorePage = () => {
     const [timeRange, setTimeRange] = useState('all');
     const [language, setLanguage] = useState('all');
     const [minEngagement, setMinEngagement] = useState('0');
-    
+
     // Trending Hashtags
     const [trendingHashtags, setTrendingHashtags] = useState<any[]>([]);
 
@@ -107,7 +107,7 @@ export const ExplorePage = () => {
                 language: lang,
                 minEngagement: minEng
             });
-            
+
             setPosts(prev => {
                 if (pageNum === 1) return data;
                 // Append without duplicates
@@ -115,7 +115,7 @@ export const ExplorePage = () => {
                 const newPosts = data.filter((p: any) => !existingIds.has(p._id));
                 return [...prev, ...newPosts];
             });
-            
+
             setHasMore(data.length === 10);
 
             // Fetch explorable content if no exact results were found
@@ -166,12 +166,12 @@ export const ExplorePage = () => {
             </header>
 
             {/* Premium Search Bar */}
-            <div className="glass-card" style={{ padding: '0.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'sticky', top: '5rem', zIndex: 40 }}>
+            <div className="glass-card" style={{ padding: '0.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', top: '5rem', zIndex: 40 }}>
                 <div style={{ color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
                     <Search size={22} style={{ color: '#c084fc' }} />
                 </div>
-                <input 
-                    type="text" 
+                <input
+                    type="text"
                     placeholder="Search posts, topics..."
                     style={{ flex: 1, backgroundColor: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '1.125rem', fontWeight: 500, width: '100%' }}
                     value={searchQuery}
@@ -181,12 +181,12 @@ export const ExplorePage = () => {
                 />
                 {searchQuery && (
                     <div style={{ padding: '0.25rem 0.625rem', borderRadius: '1rem', backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.25rem', border: '1px solid rgba(99, 102, 241, 0.3)', textTransform: 'uppercase' }}>
-                        <Flame size={12}/> Searching
+                        <Flame size={12} /> Searching
                     </div>
                 )}
                 {searchQuery && (
-                    <button 
-                        onClick={() => setSearchQuery('')} 
+                    <button
+                        onClick={() => setSearchQuery('')}
                         style={{ backgroundColor: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', padding: '0.5rem', transition: 'color 0.2s' }}
                         onMouseEnter={e => e.currentTarget.style.color = 'white'}
                         onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
@@ -194,16 +194,16 @@ export const ExplorePage = () => {
                         <X size={18} />
                     </button>
                 )}
-                
+
                 {/* Clean Filter Button */}
-                <button 
+                <button
                     onClick={() => setShowFilters(!showFilters)}
-                    style={{ 
+                    style={{
                         padding: '0.625rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', border: '1px solid', cursor: 'pointer',
                         ...(showFilters ? { backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#d8b4fe', borderColor: 'rgba(168, 85, 247, 0.4)' } : { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', borderColor: 'rgba(255, 255, 255, 0.1)' })
-                     }}
-                     onMouseEnter={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
-                     onMouseLeave={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)' }}
+                    }}
+                    onMouseEnter={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
+                    onMouseLeave={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)' }}
                 >
                     <Filter size={20} />
                 </button>
@@ -215,7 +215,7 @@ export const ExplorePage = () => {
                             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
                                 <Clock size={14} /> Recent Searches
                             </span>
-                            <button 
+                            <button
                                 onMouseDown={(e) => { e.preventDefault(); setRecentSearches([]); localStorage.removeItem('recentSearches'); }}
                                 style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: 700, backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textTransform: 'uppercase', transition: 'color 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
@@ -226,8 +226,8 @@ export const ExplorePage = () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {recentSearches.map(search => (
-                                <div 
-                                    key={search} 
+                                <div
+                                    key={search}
                                     style={{ padding: '0.875rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', transition: 'background-color 0.2s' }}
                                     onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
                                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -243,7 +243,7 @@ export const ExplorePage = () => {
                                         </div>
                                         <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>{search}</span>
                                     </div>
-                                    <button 
+                                    <button
                                         style={{ backgroundColor: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '0.25rem', display: 'flex', transition: 'color 0.2s' }}
                                         onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
                                         onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
@@ -260,24 +260,24 @@ export const ExplorePage = () => {
 
             {/* Advanced Filters Panel */}
             {showFilters && (
-                <div 
-                    className="glass-card" 
-                    style={{ 
-                        marginBottom: '2rem', marginTop: '-0.5rem', zIndex: 10, padding: '1.5rem', 
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', 
-                        animation: 'fadeIn 0.3s ease-out', position: 'relative', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)', 
+                <div
+                    className="glass-card"
+                    style={{
+                        marginBottom: '2rem', marginTop: '-0.5rem', zIndex: 10, padding: '1.5rem',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem',
+                        animation: 'fadeIn 0.3s ease-out', position: 'relative', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
                         backgroundColor: 'rgba(255, 255, 255, 0.05)'
                     }}
                 >
                     {/* Date Range Filter */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                            <Calendar size={15} style={{ color: '#c084fc' }}/> 
+                            <Calendar size={15} style={{ color: '#c084fc' }} />
                             DATE RANGE
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <select 
-                                value={timeRange} 
+                            <select
+                                value={timeRange}
                                 onChange={(e) => setTimeRange(e.target.value)}
                                 style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
                                 onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
@@ -289,7 +289,7 @@ export const ExplorePage = () => {
                                 <option value="30d">📆 Past 30 Days</option>
                             </select>
                             <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                             </div>
                         </div>
                     </div>
@@ -297,12 +297,12 @@ export const ExplorePage = () => {
                     {/* Language Filter */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                            <Globe size={15} style={{ color: '#c084fc' }}/> 
+                            <Globe size={15} style={{ color: '#c084fc' }} />
                             LANGUAGE
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <select 
-                                value={language} 
+                            <select
+                                value={language}
                                 onChange={(e) => setLanguage(e.target.value)}
                                 style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
                                 onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
@@ -314,7 +314,7 @@ export const ExplorePage = () => {
                                 <option value="fr">🇫🇷 French</option>
                             </select>
                             <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                             </div>
                         </div>
                     </div>
@@ -322,12 +322,12 @@ export const ExplorePage = () => {
                     {/* Engagement Filter */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                            <ThumbsUp size={15} style={{ color: '#c084fc' }}/> 
+                            <ThumbsUp size={15} style={{ color: '#c084fc' }} />
                             ENGAGEMENT
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <select 
-                                value={minEngagement} 
+                            <select
+                                value={minEngagement}
                                 onChange={(e) => setMinEngagement(e.target.value)}
                                 style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
                                 onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
@@ -339,7 +339,7 @@ export const ExplorePage = () => {
                                 <option value="100">🚀 100+ Interactions</option>
                             </select>
                             <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                             </div>
                         </div>
                     </div>
@@ -350,7 +350,7 @@ export const ExplorePage = () => {
             {!debouncedQuery && posts.length > 0 && page === 1 && trendingHashtags.length > 0 && (
                 <div className="fade-in-up" style={{ animationDelay: '0.1s', marginBottom: '2rem', display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                     {trendingHashtags.map((tagObj) => (
-                        <button 
+                        <button
                             key={tagObj.tag}
                             onClick={() => setSearchQuery('#' + tagObj.tag)}
                             style={{
@@ -407,15 +407,15 @@ export const ExplorePage = () => {
                 {!loading && posts.length === 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', animation: 'fadeIn 0.4s ease-out' }}>
                         {/* Empty State Message */}
-                        <div 
-                            className="glass-card" 
-                            style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                alignItems: 'center', 
-                                justifyContent: 'center', 
-                                padding: '4rem 2rem', 
-                                textAlign: 'center', 
+                        <div
+                            className="glass-card"
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '4rem 2rem',
+                                textAlign: 'center',
                                 borderStyle: 'dashed',
                                 borderColor: 'rgba(255,255,255,0.1)',
                                 marginTop: '1rem'
@@ -466,19 +466,19 @@ export const ExplorePage = () => {
                                 </div>
                                 <div style={{ display: 'flex', overflowX: 'auto', gap: '1rem', paddingBottom: '1rem', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                                     {suggestedProfiles.map((profile: any, i: number) => (
-                                        <div 
-                                            key={profile._id} 
+                                        <div
+                                            key={profile._id}
                                             className="glass-card"
-                                            style={{ 
-                                                minWidth: '180px', 
-                                                display: 'flex', 
-                                                flexDirection: 'column', 
-                                                alignItems: 'center', 
-                                                padding: '1.5rem', 
-                                                textAlign: 'center', 
-                                                gap: '1rem', 
-                                                animation: 'fadeIn 0.5s ease-out', 
-                                                animationFillMode: 'both', 
+                                            style={{
+                                                minWidth: '180px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                padding: '1.5rem',
+                                                textAlign: 'center',
+                                                gap: '1rem',
+                                                animation: 'fadeIn 0.5s ease-out',
+                                                animationFillMode: 'both',
                                                 animationDelay: `${i * 0.1}s`,
                                                 border: '1px solid rgba(255,255,255,0.05)',
                                                 transition: 'all 0.3s ease',

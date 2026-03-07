@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ShieldAlert } from 'lucide-react';
 import { reportPost } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
@@ -41,39 +42,46 @@ export const ReportModal: React.FC<ReportModalProps> = ({ postId, onClose }) => 
         }
     };
 
-    return (
-        <div className="modal-overlay">
-            <div className="modal-content relative animate-fade-in max-w-md w-full">
+    return createPortal(
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', position: 'fixed', inset: 0, zIndex: 99999 }}>
+            <div className="modal-content relative animate-fade-in max-w-md w-full" style={{ backgroundColor: '#1e293b', padding: '1.5rem', borderRadius: '1rem', width: '90%', maxWidth: '28rem', color: 'white', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.1)' }}>
                 {/* Header Section */}
-                <div className="flex justify-between items-start mb-6 gap-4">
-                    <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <ShieldAlert className="text-red-500" size={24} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{ width: '3rem', height: '3rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <ShieldAlert color="#ef4444" size={24} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Report Post</h3>
-                            <p className="text-sm text-gray-500 leading-relaxed">
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'white' }}>Report Post</h3>
+                            <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0, lineHeight: 1.4 }}>
                                 Please select the reason that best describes why you are reporting this post.
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300 transition-colors bg-transparent border-0 flex items-center justify-center p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Close"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="space-y-4 mb-8">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                     {REPORT_REASONS.map((reason) => (
                         <label
                             key={reason}
-                            className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${selectedReason === reason
-                                ? 'border-red-500 bg-red-50 dark:bg-red-500/10'
-                                : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                                }`}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                padding: '1rem',
+                                borderRadius: '0.75rem',
+                                border: selectedReason === reason ? '1px solid #ef4444' : '1px solid rgba(255,255,255,0.1)',
+                                backgroundColor: selectedReason === reason ? 'rgba(239, 68, 68, 0.05)' : 'rgba(15, 23, 42, 0.4)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                            }}
                         >
                             <input
                                 type="radio"
@@ -83,36 +91,39 @@ export const ReportModal: React.FC<ReportModalProps> = ({ postId, onClose }) => 
                                 onChange={(e) => setSelectedReason(e.target.value)}
                                 style={{ display: 'none' }}
                             />
-                            <div className="flex items-center gap-4 w-full">
-                                <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selectedReason === reason ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-300 dark:border-gray-600'
-                                    }`}>
-                                    {selectedReason === reason && <div className="w-2.5 h-2.5 rounded-full bg-red-500" />}
-                                </span>
-                                <span className={`text-[15px] font-medium leading-none ${selectedReason === reason ? 'text-red-700 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                                    {reason}
-                                </span>
+                            <div style={{
+                                width: '1.25rem', height: '1.25rem', borderRadius: '50%', flexShrink: 0,
+                                border: selectedReason === reason ? '2px solid #ef4444' : '2px solid #4b5563',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                backgroundColor: selectedReason === reason ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
+                            }}>
+                                {selectedReason === reason && <div style={{ width: '0.625rem', height: '0.625rem', borderRadius: '50%', backgroundColor: '#ef4444' }} />}
                             </div>
+                            <span style={{ fontSize: '0.9375rem', fontWeight: 500, color: selectedReason === reason ? '#fca5a5' : '#d1d5db' }}>
+                                {reason}
+                            </span>
                         </label>
                     ))}
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800/60">
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                     <button
                         onClick={onClose}
-                        className="btn btn-outline py-1.5 px-4 text-sm"
                         disabled={isSubmitting}
+                        style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', background: 'transparent', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.2)', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.5 : 1 }}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={!selectedReason || isSubmitting}
-                        className="btn bg-red-500 hover:bg-red-600 text-white py-1.5 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: (!selectedReason || isSubmitting) ? 'not-allowed' : 'pointer', opacity: (!selectedReason || isSubmitting) ? 0.5 : 1 }}
                     >
                         {isSubmitting ? 'Submitting...' : 'Submit Report'}
                     </button>
                 </div>
             </div>
-        </div >
+        </div>,
+        document.body
     );
 };

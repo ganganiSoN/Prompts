@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import { Shield, CheckCircle, AlertTriangle, EyeOff, Ban, Clock, Loader2, ChevronDown, UserSearch, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 
 export const ModerationDashboard = () => {
     const { user } = useAuth();
@@ -48,6 +49,28 @@ export const ModerationDashboard = () => {
             setLoading(false);
         }
     };
+
+    const [modTickets, setModTickets] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Connect to the backend socket for real-time AI moderation tickets
+        const baseApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const socketUrl = baseApiUrl.replace('/api', '');
+
+        const socket = io(socketUrl);
+
+        socket.on('connect', () => {
+            socket.emit('join_room', 'moderator_dashboard');
+        });
+
+        socket.on('new_mod_ticket', (payload) => {
+            setModTickets(prev => [payload, ...prev]);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     useEffect(() => {
         fetchReports();
@@ -291,9 +314,9 @@ export const ModerationDashboard = () => {
                                 }}
                             />
                         </div>
-                        <button 
-                            type="submit" 
-                            disabled={loadingUser || !searchUserId.trim()} 
+                        <button
+                            type="submit"
+                            disabled={loadingUser || !searchUserId.trim()}
                             className="btn btn-primary"
                             style={{ width: 'auto', padding: '0.75rem 2rem', opacity: (loadingUser || !searchUserId.trim()) ? 0.5 : 1 }}
                         >
@@ -305,7 +328,7 @@ export const ModerationDashboard = () => {
                         <div className="fade-in" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(30, 41, 59, 0.4)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
                                 <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Score</label>
-                                <select 
+                                <select
                                     value={gridMinRisk + '-' + gridMaxRisk}
                                     onChange={(e) => {
                                         const val = e.target.value;
@@ -406,10 +429,10 @@ export const ModerationDashboard = () => {
                                     </thead>
                                     <tbody>
                                         {userGridData.map((row) => (
-                                            <tr 
-                                                key={row.postId} 
-                                                style={{ transition: 'background-color 0.2s', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }} 
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'} 
+                                            <tr
+                                                key={row.postId}
+                                                style={{ transition: 'background-color 0.2s', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'}
                                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
                                                 <td style={{ padding: '1rem', fontSize: '0.875rem', fontFamily: 'monospace', color: '#9ca3af' }}>{row.postId.substring(0, 8)}...</td>
@@ -441,136 +464,197 @@ export const ModerationDashboard = () => {
 
             {activeTab === 'queue' && (
                 <div className="animate-fade-in">
-                {loading ? (
-                    <div className="flex justify-center py-12">
-                        <Loader2 className="animate-spin text-red-500" size={32} />
-                    </div>
-                ) : reports.length === 0 ? (
-                <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
-                    <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
-                        <CheckCircle className="w-8 h-8 text-green-500" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">All clear!</h3>
-                    <p className="text-gray-500 mt-2">There are currently no reports pending your review.</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {reports.map((report) => (
-                        <div key={report._id} className="glass-card p-5 border-l-4 border-l-red-500 transition-all hover:shadow-md">
-                            <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        {getStatusBadge(report.status)}
-                                        <span className="text-xs text-gray-400">
-                                            Reported {new Date(report.createdAt).toLocaleDateString()}
-                                        </span>
-                                        {report.aiToxicityScore > 0.85 && (
-                                            <span className="flex items-center gap-1 text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
-                                                <AlertTriangle size={12} /> High Toxicity ({Math.round(report.aiToxicityScore * 100)}%)
-                                            </span>
-                                        )}
-                                    </div>
-                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                        Reason: {report.reason}
-                                    </h4>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                        Reported by <span className="font-medium text-indigo-500">@{report.reporter?.name || report.reporter?.email?.split('@')[0]}</span>
-                                    </p>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <button
-                                        onClick={() => handleAction(report._id, 'DISMISS')}
-                                        disabled={processingId === report._id || report.status === 'CLOSED'}
-                                        style={{
-                                            padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem',
-                                            background: 'rgba(255, 255, 255, 0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s',
-                                            opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
-                                        }}
-                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
-                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                                    >
-                                        Dismiss
-                                    </button>
-
-                                    <div 
-                                        style={{ position: 'relative', paddingBottom: '0.5rem', marginBottom: '-0.5rem' }} 
-                                        onMouseEnter={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'block'; }}
-                                        onMouseLeave={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'none'; }}
-                                    >
-                                        <button
-                                            disabled={processingId === report._id || report.status === 'CLOSED'}
-                                            style={{
-                                                padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem',
-                                                background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                                                opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.background = '#4f46e5'}
-                                            onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
-                                        >
-                                            Take Action <ChevronDown size={14} />
-                                        </button>
-                                        <div 
-                                            className="dropdown-menu"
-                                            style={{ 
-                                                display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '0.4rem', width: '13rem', 
-                                                background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(8px)', borderRadius: '0.5rem', border: '1px solid rgba(255, 255, 255, 0.1)', 
-                                                padding: '0.5rem 0', zIndex: 10, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                                            }}
-                                        >
-                                            <button
-                                                onClick={() => handleAction(report._id, 'RESOLVE', 'REMOVED')}
-                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fca5a5', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
-                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <EyeOff size={14} /> Remove Post
-                                            </button>
-                                            <button
-                                                onClick={() => handleAction(report._id, 'RESOLVE', 'USER_WARNED')}
-                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fdba74', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
-                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <AlertTriangle size={14} /> Warn User + Remove
-                                            </button>
-                                            <button
-                                                onClick={() => handleAction(report._id, 'RESOLVE', 'USER_SUSPENDED')}
-                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#ef4444', fontWeight: 700, background: 'transparent', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', transition: 'all 0.1s' }}
-                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                <Ban size={14} /> Suspend Author
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Offending Content Preview */}
-                            <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
-                                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Offending Content (ID: {report.post?._id})</p>
-                                {report.post ? (
-                                    <>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">
-                                                {report.post.author?.name?.[0] || report.post.author?.email?.[0] || '?'}
-                                            </div>
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                @{report.post.author?.name || report.post.author?.email?.split('@')[0]}
-                                            </span>
-                                        </div>
-                                        <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 overflow-hidden" dangerouslySetInnerHTML={{ __html: report.post.content }} />
-                                    </>
-                                ) : (
-                                    <p className="text-sm text-gray-500 italic">This post has already been fully deleted from the database.</p>
-                                )}
-                            </div>
+                    {loading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="animate-spin text-red-500" size={32} />
                         </div>
-                    ))}
+                    ) : reports.length === 0 ? (
+                        <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
+                            <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
+                                <CheckCircle className="w-8 h-8 text-green-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">All clear!</h3>
+                            <p className="text-gray-500 mt-2">There are currently no reports pending your review.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-8">
+                            {/* Real-Time AI Mod Tickets */}
+                            {modTickets.length > 0 && (
+                                <div>
+                                    <h3 className="text-xl font-bold mb-4 text-orange-500 flex items-center gap-2">
+                                        <AlertTriangle /> AI Moderation Alerts (Real-Time)
+                                    </h3>
+                                    <div className="space-y-4">
+                                        {modTickets.map((ticket, index) => (
+                                            <div key={`mod-${index}`} className="glass-card p-5 border border-l-4 border-l-orange-500 shadow-lg relative bg-gray-50 dark:bg-gray-800">
+                                                <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
+                                                    <div>
+                                                        <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400 font-bold rounded-lg mb-2 inline-block shadow-sm">
+                                                            Risk Level: {Math.round(ticket.ai_toxicity_score)}/100
+                                                        </span>
+                                                        <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                                            <strong>AI Tags: </strong>
+                                                            {ticket.moderation_reasons?.join(', ')}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors border-none cursor-pointer"
+                                                            onClick={() => {
+                                                                setModTickets(prev => prev.filter((_, i) => i !== index));
+                                                                success("Ticket Ignored as Safe");
+                                                            }}
+                                                        >
+                                                            Ignore (Safe)
+                                                        </button>
+                                                        <button
+                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors border-none cursor-pointer"
+                                                            onClick={() => {
+                                                                setModTickets(prev => prev.filter((_, i) => i !== index));
+                                                                success("Post Confirmed Deleted");
+                                                            }}
+                                                        >
+                                                            Confirm Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+                                                    <div className="text-sm line-clamp-3 overflow-hidden text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: ticket.post?.content || 'No text content available' }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Standard Reports Queue */}
+                            {reports.length > 0 && (
+                                <div>
+                                    {modTickets.length > 0 && (
+                                        <h3 className="text-lg font-bold mb-4 text-gray-700 dark:text-gray-300 flex items-center gap-2 border-t border-gray-200 dark:border-gray-800 pt-6">
+                                            Standard Queue
+                                        </h3>
+                                    )}
+                                    <div className="space-y-4">
+                                        {reports.map((report) => (
+                                            <div key={report._id} className="glass-card p-5 border-l-4 border-l-red-500 transition-all hover:shadow-md">
+                                                <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {getStatusBadge(report.status)}
+                                                            <span className="text-xs text-gray-400">
+                                                                Reported {new Date(report.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                            {report.aiToxicityScore > 0.85 && (
+                                                                <span className="flex items-center gap-1 text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
+                                                                    <AlertTriangle size={12} /> High Toxicity ({Math.round(report.aiToxicityScore * 100)}%)
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                                            Reason: {report.reason}
+                                                        </h4>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                            Reported by <span className="font-medium text-indigo-500">@{report.reporter?.name || report.reporter?.email?.split('@')[0]}</span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <button
+                                                            onClick={() => handleAction(report._id, 'DISMISS')}
+                                                            disabled={processingId === report._id || report.status === 'CLOSED'}
+                                                            style={{
+                                                                padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem',
+                                                                background: 'rgba(255, 255, 255, 0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s',
+                                                                opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
+                                                            }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                                        >
+                                                            Dismiss
+                                                        </button>
+
+                                                        <div
+                                                            style={{ position: 'relative', paddingBottom: '0.5rem', marginBottom: '-0.5rem' }}
+                                                            onMouseEnter={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'block'; }}
+                                                            onMouseLeave={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'none'; }}
+                                                        >
+                                                            <button
+                                                                disabled={processingId === report._id || report.status === 'CLOSED'}
+                                                                style={{
+                                                                    padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                                                    background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                                                                    opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
+                                                                }}
+                                                                onMouseEnter={e => e.currentTarget.style.background = '#4f46e5'}
+                                                                onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
+                                                            >
+                                                                Take Action <ChevronDown size={14} />
+                                                            </button>
+                                                            <div
+                                                                className="dropdown-menu"
+                                                                style={{
+                                                                    display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '0.4rem', width: '13rem',
+                                                                    background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(8px)', borderRadius: '0.5rem', border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                                    padding: '0.5rem 0', zIndex: 10, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                                                                }}
+                                                            >
+                                                                <button
+                                                                    onClick={() => handleAction(report._id, 'RESOLVE', 'REMOVED')}
+                                                                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fca5a5', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
+                                                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                                >
+                                                                    <EyeOff size={14} /> Remove Post
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleAction(report._id, 'RESOLVE', 'USER_WARNED')}
+                                                                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fdba74', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
+                                                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)'}
+                                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                                >
+                                                                    <AlertTriangle size={14} /> Warn User + Remove
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleAction(report._id, 'RESOLVE', 'USER_SUSPENDED')}
+                                                                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#ef4444', fontWeight: 700, background: 'transparent', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', transition: 'all 0.1s' }}
+                                                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                                >
+                                                                    <Ban size={14} /> Suspend Author
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Offending Content Preview */}
+                                                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
+                                                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Offending Content (ID: {report.post?._id})</p>
+                                                    {report.post ? (
+                                                        <>
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-700">
+                                                                    {report.post.author?.name?.[0] || report.post.author?.email?.[0] || '?'}
+                                                                </div>
+                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    @{report.post.author?.name || report.post.author?.email?.split('@')[0]}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 overflow-hidden" dangerouslySetInnerHTML={{ __html: report.post.content }} />
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 italic">This post has already been fully deleted from the database.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-            )}
-            </div>
             )}
         </div>
     );

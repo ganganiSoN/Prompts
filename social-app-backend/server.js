@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/social-app';
 
@@ -31,11 +34,26 @@ app.use('/api/analytics', analyticsRoutes);
 // Initialize Background Jobs
 require('./src/jobs/post.jobs');
 
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.io
+const io = new Server(server, {
+    cors: { origin: '*' }
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+    socket.on('join_room', (room) => {
+        socket.join(room);
+    });
+});
+
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('Connected to MongoDB');
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });
     })
