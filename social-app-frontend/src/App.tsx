@@ -16,6 +16,7 @@ import { ExplorePage } from './components/explore/ExplorePage';
 import CommunityPage from './components/community/CommunityPage';
 import UsersPage from './components/admin/UsersPage';
 import UserDetailPage from './components/admin/UserDetailPage';
+import { ModerationDashboard } from './components/admin/ModerationDashboard';
 import CreateCommunityPage from './components/community/CreateCommunityPage';
 import CommunityDetailsPage from './components/community/CommunityDetailsPage';
 
@@ -50,6 +51,7 @@ const AppRoutes = () => {
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="users/:id" element={<UserDetailPage />} />
+        <Route path="moderation" element={<ModerationDashboard />} />
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/create" element={<CreateCommunityPage />} />
         <Route path="community/:id" element={<CommunityDetailsPage />} />

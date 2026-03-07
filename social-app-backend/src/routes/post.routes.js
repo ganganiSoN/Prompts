@@ -13,6 +13,7 @@ router.get('/explore', verifyToken, postController.getExplore);
 router.post('/:id/engage', verifyToken, postController.engage);
 router.post('/:id/repost', verifyToken, postController.repostPost);
 router.post('/:id/vote', verifyToken, postController.votePoll);
+router.post('/:id/report', verifyToken, postController.reportPost);
 router.get('/:id/comments', postController.getComments);
 router.delete('/:id', verifyToken, postController.deletePost);
 router.put('/:id', verifyToken, postController.updatePost);

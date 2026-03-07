@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const Engagement = require('../models/Engagement');
 const User = require('../models/User');
+const Report = require('../models/Report');
 
 // Create a new post
 exports.createPost = async (req, res) => {
@@ -489,6 +490,65 @@ exports.getExplore = async (req, res) => {
         res.status(200).json(posts);
     } catch (error) {
         console.error('Error fetching explore feed:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Report a post
+exports.reportPost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const reporterId = req.user.userId;
+        const { reason } = req.body;
+
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        // Auto-Risk Scoring Rules
+        let aiToxicityScore = 0;
+        if (['Hate Speech', 'Harassment', 'NSFW'].includes(reason)) {
+            // Mocking an AI toxicity score
+            aiToxicityScore = 0.5 + Math.random() * 0.5; // Between 0.5 and 1.0
+        } else {
+            aiToxicityScore = Math.random() * 0.5;
+        }
+
+        let reportStatus = 'AUTO_RISK_SCORING';
+
+        // IF AI_toxicity_score > 0.85 THEN auto_flag
+        if (aiToxicityScore > 0.85) {
+            post.status = 'FLAGGED';
+            await post.save();
+        }
+
+        const report = new Report({
+            post: id,
+            reporter: reporterId,
+            reason,
+            status: reportStatus,
+            aiToxicityScore
+        });
+
+        await report.save();
+
+        // IF reports_count > 5 THEN escalate_to_senior_moderator
+        const reportsCount = await Report.countDocuments({ post: id });
+        if (reportsCount > 5) {
+            report.status = 'ESCALATED'; // Or specifically route to senior moderator
+            await report.save();
+
+            // Optionally pull from feed by putting under review
+            if (post.status !== 'UNDER_REVIEW') {
+                post.status = 'UNDER_REVIEW';
+                await post.save();
+            }
+        }
+
+        res.status(201).json({ message: 'Report submitted successfully', report });
+    } catch (error) {
+        console.error('Error reporting post:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };

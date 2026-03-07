@@ -18,6 +18,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { CommentSection } from './CommentSection';
 import { RichTextEditor } from './RichTextEditor';
+import { ReportModal } from './ReportModal';
 import type { PostPayload } from './RichTextEditor';
 
 interface PostProps {
@@ -33,6 +34,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isDeleted, setIsDeleted] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const optionsMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -145,7 +147,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                             {post.type === 'image' ? (
                                 <img src={mediaUrl} alt="Attached content" className="w-full max-w-full object-contain max-h-[600px] mx-auto block" onError={(e) => (e.currentTarget.style.display = 'none')} />
                             ) : (
-                                <video src={mediaUrl} controls className="w-full max-w-full max-h-[600px] object-contain mx-auto block" />
+                                <video src={mediaUrl} controls className="w-full max-w-full max-h-[600px] object-contain mx-auto block" onClick={(e) => e.preventDefault()} />
                             )}
                         </div>
                     )}
@@ -392,66 +394,82 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                     </div>
                 </div>
 
-                {isAuthor && (
-                    <div className="relative" ref={optionsMenuRef}>
-                        <button
-                            className="post-options-btn"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowOptions(!showOptions);
-                            }}
-                        >
-                            <MoreHorizontal size={20} />
-                        </button>
+                <div className="relative" ref={optionsMenuRef}>
+                    <button
+                        type="button"
+                        className="post-options-btn"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowOptions(!showOptions);
+                        }}
+                    >
+                        <MoreHorizontal size={20} />
+                    </button>
 
-                        {/* Dropdown Menu */}
-                        {showOptions && (
-                            <div className="post-options-dropdown">
-                                {post.status === 'DRAFT' && (
+                    {/* Dropdown Menu */}
+                    {showOptions && (
+                        <div className="post-options-dropdown">
+                            {isAuthor ? (
+                                <>
+                                    {post.status === 'DRAFT' && (
+                                        <button
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                try {
+                                                    await updatePost(post._id, post.content, 'PUBLISHED');
+                                                    success('Draft published successfully!');
+                                                    post.status = 'PUBLISHED';
+                                                    setShowOptions(false);
+                                                } catch (err: any) {
+                                                    showError(err.message || 'Failed to publish draft');
+                                                }
+                                            }}
+                                            className="post-options-dropdown-item text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10"
+                                        >
+                                            <Send size={16} />
+                                            Publish Draft
+                                        </button>
+                                    )}
                                     <button
-                                        onClick={async (e) => {
+                                        onClick={(e) => {
                                             e.stopPropagation();
-                                            try {
-                                                await updatePost(post._id, post.content, 'PUBLISHED');
-                                                success('Draft published successfully!');
-                                                post.status = 'PUBLISHED';
-                                                setShowOptions(false);
-                                            } catch (err: any) {
-                                                showError(err.message || 'Failed to publish draft');
-                                            }
+                                            setIsEditing(true);
+                                            setShowOptions(false);
                                         }}
-                                        className="post-options-dropdown-item text-green-600 dark:text-green-500 hover:bg-green-50 dark:hover:bg-green-500/10"
+                                        className="post-options-dropdown-item"
                                     >
-                                        <Send size={16} />
-                                        Publish Draft
+                                        <Edit2 size={16} />
+                                        Edit Post
                                     </button>
-                                )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowDeleteConfirm(true);
+                                            setShowOptions(false);
+                                        }}
+                                        className="post-options-dropdown-item danger"
+                                    >
+                                        <Trash2 size={16} />
+                                        Delete
+                                    </button>
+                                </>
+                            ) : (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setIsEditing(true);
-                                        setShowOptions(false);
-                                    }}
-                                    className="post-options-dropdown-item"
-                                >
-                                    <Edit2 size={16} />
-                                    Edit Post
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowDeleteConfirm(true);
+                                        setShowReportModal(true);
                                         setShowOptions(false);
                                     }}
                                     className="post-options-dropdown-item danger"
                                 >
-                                    <Trash2 size={16} />
-                                    Delete
+                                    <AlertTriangle size={16} />
+                                    Report Post
                                 </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {isEditing ? (
@@ -527,6 +545,13 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             {/* Comment Section Expand/Collapse */}
             {showComments && (
                 <CommentSection postId={post._id} />
+            )}
+
+            {showReportModal && (
+                <ReportModal
+                    postId={post._id}
+                    onClose={() => setShowReportModal(false)}
+                />
             )}
         </div>
     );

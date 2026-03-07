@@ -65,14 +65,14 @@ export const getExplore = async (page = 1, limit = 20, filters?: ExploreFilters)
         page: page.toString(),
         limit: limit.toString()
     });
-    
+
     if (filters) {
         if (filters.search) params.append('search', filters.search);
         if (filters.timeRange) params.append('timeRange', filters.timeRange);
         if (filters.language) params.append('language', filters.language);
         if (filters.minEngagement) params.append('minEngagement', filters.minEngagement);
     }
-    
+
     // Add a cache bust to ensure trending scores are immediately fresh
     params.append('_t', Date.now().toString());
 
@@ -175,6 +175,19 @@ export const updatePost = async (postId: string, content: string, status?: strin
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update post');
+    }
+    return response.json();
+};
+
+export const reportPost = async (postId: string, reason: string) => {
+    const response = await fetch(`${API_URL}/${postId}/report`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to report post');
     }
     return response.json();
 };

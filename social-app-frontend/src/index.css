@@ -337,6 +337,7 @@ p {
   margin: 0;
   background: linear-gradient(to right, #fff, var(--text-muted));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -345,6 +346,28 @@ p {
   flex-direction: column;
   gap: 0.5rem;
   flex-grow: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.2) transparent;
+  padding-right: 0.25rem;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
 }
 
 .nav-link {
@@ -2078,4 +2101,34 @@ p {
   width: auto;
   min-height: auto;
   border-radius: 0.5rem;
+}
+
+/* Select Option Styling - Light/Dark Theme Fix */
+select option {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  padding: 8px 12px;
+}
+
+select:focus option:checked {
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+  color: var(--primary);
+}
+
+/* Force hiding of native select arrow and force styles for dark mode */
+select.custom-select {
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  background-image: none !important;
+  background-color: var(--input-bg) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+  padding: 0.5rem 2.5rem 0.5rem 1rem !important;
+  border-radius: 0.75rem !important;
+}
+
+select.custom-select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--input-focus) !important;
 }
