@@ -156,60 +156,40 @@ export const ExplorePage = () => {
     }, []);
 
     return (
-        <div className="page-container animate-fade-in pb-12">
-            <header className="page-header mb-8">
-                <h1 className="page-title m-0 flex items-center gap-3">
-                    <TrendingUp size={28} className="text-[#8b5cf6]" />
+        <div className="page-container" style={{ animation: 'fadeIn 0.5s ease-out', paddingBottom: '3rem' }}>
+            <header className="page-header" style={{ marginBottom: '2rem' }}>
+                <h1 className="page-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <TrendingUp size={28} style={{ color: '#8b5cf6' }} />
                     Explore
                 </h1>
-                <p className="text-gray-400 mt-2">Discover trending discussions and search across all communities</p>
+                <p style={{ color: '#9ca3af', marginTop: '0.5rem' }}>Discover trending discussions and search across all communities</p>
             </header>
 
             {/* Premium Search Bar */}
-            <div 
-                className="glass-card" 
-                style={{ 
-                    padding: '0.75rem 1rem', 
-                    marginBottom: '1.5rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.75rem', 
-                    position: 'relative',
-                    zIndex: 40
-                }}
-            >
+            <div className="glass-card" style={{ padding: '0.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'sticky', top: '5rem', zIndex: 40 }}>
                 <div style={{ color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
-                    <Search size={22} color="#a78bfa" />
+                    <Search size={22} style={{ color: '#c084fc' }} />
                 </div>
                 <input 
                     type="text" 
                     placeholder="Search posts, topics..."
-                    style={{ 
-                        flex: 1, 
-                        background: 'transparent', 
-                        border: 'none', 
-                        outline: 'none', 
-                        color: 'white', 
-                        fontSize: '1.05rem',
-                        fontWeight: 500,
-                        width: '100%'
-                    }}
+                    style={{ flex: 1, backgroundColor: 'transparent', border: 'none', outline: 'none', color: 'white', fontSize: '1.125rem', fontWeight: 500, width: '100%' }}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                 />
                 {searchQuery && (
-                    <div style={{ padding: '0.2rem 0.6rem', borderRadius: '1rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', fontWeight: 600, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.25rem', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+                    <div style={{ padding: '0.25rem 0.625rem', borderRadius: '1rem', backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', fontWeight: 600, fontSize: '0.75rem', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.25rem', border: '1px solid rgba(99, 102, 241, 0.3)', textTransform: 'uppercase' }}>
                         <Flame size={12}/> Searching
                     </div>
                 )}
                 {searchQuery && (
                     <button 
                         onClick={() => setSearchQuery('')} 
-                        style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', padding: '0.5rem' }}
-                        onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                        onMouseLeave={(e) => e.currentTarget.style.color = '#9ca3af'}
+                        style={{ backgroundColor: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex', padding: '0.5rem', transition: 'color 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'white'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
                     >
                         <X size={18} />
                     </button>
@@ -219,43 +199,27 @@ export const ExplorePage = () => {
                 <button 
                     onClick={() => setShowFilters(!showFilters)}
                     style={{ 
-                        background: showFilters ? 'rgba(139, 92, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)', 
-                        color: showFilters ? '#c4b5fd' : '#94a3b8',
-                        border: showFilters ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
-                        padding: '0.6rem',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
+                        padding: '0.625rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', border: '1px solid', cursor: 'pointer',
+                        ...(showFilters ? { backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#d8b4fe', borderColor: 'rgba(168, 85, 247, 0.4)' } : { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#94a3b8', borderColor: 'rgba(255, 255, 255, 0.1)' })
+                     }}
+                     onMouseEnter={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
+                     onMouseLeave={e => { if (!showFilters) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)' }}
                 >
                     <Filter size={20} />
                 </button>
 
                 {/* Recent Searches Overlay Component */}
                 {isSearchFocused && !searchQuery && recentSearches.length > 0 && (
-                    <div 
-                        className="glass-card"
-                        style={{ 
-                            position: 'absolute', 
-                            top: 'calc(100% + 10px)', 
-                            left: 0, 
-                            right: 0, 
-                            padding: 0, 
-                            zIndex: 50,
-                            overflow: 'hidden'
-                        }}
-                    >
-                        <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#a78bfa', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
+                    <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem', padding: 0, zIndex: 50, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+                        <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
                                 <Clock size={14} /> Recent Searches
                             </span>
                             <button 
                                 onMouseDown={(e) => { e.preventDefault(); setRecentSearches([]); localStorage.removeItem('recentSearches'); }}
-                                style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: 'bold', background: 'transparent', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#a78bfa'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = '#818cf8'}
+                                style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: 700, backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textTransform: 'uppercase', transition: 'color 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
+                                onMouseLeave={e => e.currentTarget.style.color = '#818cf8'}
                             >
                                 Clear
                             </button>
@@ -264,26 +228,26 @@ export const ExplorePage = () => {
                             {recentSearches.map(search => (
                                 <div 
                                     key={search} 
-                                    style={{ padding: '0.85rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.02)', transition: 'background-color 0.2s' }}
+                                    style={{ padding: '0.875rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', transition: 'background-color 0.2s' }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                                     onMouseDown={(e) => {
                                         e.preventDefault();
                                         setSearchQuery(search);
                                         setIsSearchFocused(false);
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#d1d5db' }}>
-                                        <div style={{ padding: '0.4rem', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex' }}>
-                                            <Search size={14} color="#9ca3af" />
+                                        <div style={{ padding: '0.375rem', borderRadius: '9999px', backgroundColor: 'rgba(255, 255, 255, 0.05)', display: 'flex' }}>
+                                            <Search size={14} style={{ color: '#9ca3af' }} />
                                         </div>
                                         <span style={{ fontSize: '0.95rem', fontWeight: 500 }}>{search}</span>
                                     </div>
                                     <button 
-                                        style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '0.25rem', display: 'flex' }}
-                                        onMouseDown={(e) => removeRecentSearch(search, e)}
-                                        onMouseEnter={(e) => e.currentTarget.style.color = '#f87171'}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                                        style={{ backgroundColor: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '0.25rem', display: 'flex', transition: 'color 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                                        onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
+                                        onMouseDown={(e) => { e.stopPropagation(); removeRecentSearch(search, e); }}
                                     >
                                         <X size={16} />
                                     </button>
@@ -297,97 +261,100 @@ export const ExplorePage = () => {
             {/* Advanced Filters Panel */}
             {showFilters && (
                 <div 
-                    className="glass-card"
+                    className="glass-card" 
                     style={{ 
-                        marginBottom: '2rem', 
-                        marginTop: '-0.5rem', 
-                        zIndex: 10,
-                        padding: '1.5rem',
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '1.5rem'
+                        marginBottom: '2rem', marginTop: '-0.5rem', zIndex: 10, padding: '1.5rem', 
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', 
+                        animation: 'fadeIn 0.3s ease-out', position: 'relative', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)', 
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)'
                     }}
                 >
-                        {/* Date Range Filter */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#9ca3af', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                                <Calendar size={15} color="#a78bfa"/> 
-                                DATE RANGE
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                                <select 
-                                    value={timeRange} 
-                                    onChange={(e) => setTimeRange(e.target.value)}
-                                    style={{ width: '100%', appearance: 'none', padding: '0.85rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: '#0f172a', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', outline: 'none', colorScheme: 'dark' }}
-                                >
-                                    <option value="all">🌍 All Time</option>
-                                    <option value="24h">⏱️ Past 24 Hours</option>
-                                    <option value="7d">📅 Past 7 Days</option>
-                                    <option value="30d">📆 Past 30 Days</option>
-                                </select>
-                                <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', color: '#9ca3af' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                </div>
+                    {/* Date Range Filter */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
+                            <Calendar size={15} style={{ color: '#c084fc' }}/> 
+                            DATE RANGE
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                value={timeRange} 
+                                onChange={(e) => setTimeRange(e.target.value)}
+                                style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
+                                onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
+                                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.boxShadow = 'none' }}
+                            >
+                                <option value="all">🌍 All Time</option>
+                                <option value="24h">⏱️ Past 24 Hours</option>
+                                <option value="7d">📅 Past 7 Days</option>
+                                <option value="30d">📆 Past 30 Days</option>
+                            </select>
+                            <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Language Filter */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#9ca3af', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                                <Globe size={15} color="#a78bfa"/> 
-                                LANGUAGE
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                                <select 
-                                    value={language} 
-                                    onChange={(e) => setLanguage(e.target.value)}
-                                    style={{ width: '100%', appearance: 'none', padding: '0.85rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: '#0f172a', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', outline: 'none', colorScheme: 'dark' }}
-                                >
-                                    <option value="all">🌐 Every Language</option>
-                                    <option value="en">🇺🇸 English</option>
-                                    <option value="es">🇪🇸 Spanish</option>
-                                    <option value="fr">🇫🇷 French</option>
-                                </select>
-                                <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', color: '#9ca3af' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                </div>
+                    {/* Language Filter */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
+                            <Globe size={15} style={{ color: '#c084fc' }}/> 
+                            LANGUAGE
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                value={language} 
+                                onChange={(e) => setLanguage(e.target.value)}
+                                style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
+                                onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
+                                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.boxShadow = 'none' }}
+                            >
+                                <option value="all">🌐 Every Language</option>
+                                <option value="en">🇺🇸 English</option>
+                                <option value="es">🇪🇸 Spanish</option>
+                                <option value="fr">🇫🇷 French</option>
+                            </select>
+                            <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Engagement Filter */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#9ca3af', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
-                                <ThumbsUp size={15} color="#a78bfa"/> 
-                                ENGAGEMENT
-                            </label>
-                            <div style={{ position: 'relative' }}>
-                                <select 
-                                    value={minEngagement} 
-                                    onChange={(e) => setMinEngagement(e.target.value)}
-                                    style={{ width: '100%', appearance: 'none', padding: '0.85rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: '#0f172a', color: 'white', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', outline: 'none', colorScheme: 'dark' }}
-                                >
-                                    <option value="0">🎯 Any Amount</option>
-                                    <option value="10">⚡ 10+ Interactions</option>
-                                    <option value="50">🔥 50+ Interactions</option>
-                                    <option value="100">🚀 100+ Interactions</option>
-                                </select>
-                                <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', display: 'flex', color: '#9ca3af' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                </div>
+                    {/* Engagement Filter */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', position: 'relative' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
+                            <ThumbsUp size={15} style={{ color: '#c084fc' }}/> 
+                            ENGAGEMENT
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                            <select 
+                                value={minEngagement} 
+                                onChange={(e) => setMinEngagement(e.target.value)}
+                                style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', padding: '0.75rem 1rem', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer', backgroundColor: 'rgba(15, 23, 42, 0.6)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '0.75rem', outline: 'none' }}
+                                onFocus={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)' }}
+                                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.boxShadow = 'none' }}
+                            >
+                                <option value="0">🎯 Any Amount</option>
+                                <option value="10">⚡ 10+ Interactions</option>
+                                <option value="50">🔥 50+ Interactions</option>
+                                <option value="100">🚀 100+ Interactions</option>
+                            </select>
+                            <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </div>
                         </div>
+                    </div>
                 </div>
             )}
 
             {/* Trending Tags Section (Visual Polish) */}
             {!debouncedQuery && posts.length > 0 && page === 1 && trendingHashtags.length > 0 && (
-                <div className="mb-8 flex gap-3 overflow-x-auto pb-2 scrollbar-none fade-in-up" style={{ animationDelay: '0.1s' }}>
+                <div className="fade-in-up" style={{ animationDelay: '0.1s', marginBottom: '2rem', display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
                     {trendingHashtags.map((tagObj) => (
                         <button 
                             key={tagObj.tag}
                             onClick={() => setSearchQuery('#' + tagObj.tag)}
-                            className="flex items-center gap-1.5 px-4 py-2 transition-all whitespace-nowrap active:scale-95 group"
                             style={{
+                                display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', whiteSpace: 'nowrap', transition: 'all 0.2s',
                                 background: 'rgba(30, 41, 59, 0.4)',
                                 border: '1px solid rgba(255, 255, 255, 0.08)',
                                 borderRadius: '0.75rem',
@@ -406,16 +373,16 @@ export const ExplorePage = () => {
                                 e.currentTarget.style.color = '#d1d5db';
                             }}
                         >
-                            <Hash size={14} className="text-[#c4b5fd] group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">{tagObj.tag}</span>
-                            <span className="text-[10px] text-gray-500 ml-1">({tagObj.count})</span>
+                            <Hash size={14} style={{ color: '#c4b5fd', transition: 'transform 0.2s' }} />
+                            <span style={{ fontWeight: 500 }}>{tagObj.tag}</span>
+                            <span style={{ fontSize: '0.625rem', color: '#6b7280', marginLeft: '0.25rem' }}>({tagObj.count})</span>
                         </button>
                     ))}
                 </div>
             )}
 
             {/* Posts Feed Grid */}
-            <div className="feed-content space-y-6">
+            <div className="feed-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {posts.map((post: any, index: number) => {
                     const isLast = index === posts.length - 1;
                     return (
@@ -426,13 +393,13 @@ export const ExplorePage = () => {
                 })}
 
                 {loading && (
-                    <div className="flex justify-center p-8">
-                        <Loader2 className="animate-spin text-[#8b5cf6]" size={32} />
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                        <Loader2 className="animate-spin" style={{ color: '#8b5cf6' }} size={32} />
                     </div>
                 )}
 
                 {!hasMore && posts.length > 0 && (
-                    <div className="text-center p-8 text-gray-500 font-medium">
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280', fontWeight: 500 }}>
                         You've reached the end of the explore feed
                     </div>
                 )}
@@ -497,11 +464,11 @@ export const ExplorePage = () => {
                                     </div>
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(to right, #ffffff, #e0e7ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.02em' }}>People to follow</h2>
                                 </div>
-                                <div style={{ display: 'flex', overflowX: 'auto', gap: '1rem', paddingBottom: '1rem', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }} className="scrollbar-none">
+                                <div style={{ display: 'flex', overflowX: 'auto', gap: '1rem', paddingBottom: '1rem', WebkitOverflowScrolling: 'touch', msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                                     {suggestedProfiles.map((profile: any, i: number) => (
                                         <div 
                                             key={profile._id} 
-                                            className="glass-card group"
+                                            className="glass-card"
                                             style={{ 
                                                 minWidth: '180px', 
                                                 display: 'flex', 
@@ -521,14 +488,18 @@ export const ExplorePage = () => {
                                                 e.currentTarget.style.transform = 'translateY(-4px)';
                                                 e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)';
                                                 e.currentTarget.style.background = 'rgba(30, 41, 59, 0.8)';
+                                                const avatar = e.currentTarget.querySelector('.suggested-avatar') as HTMLElement;
+                                                if (avatar) avatar.style.transform = 'scale(1.1)';
                                             }}
                                             onMouseLeave={(e) => {
                                                 e.currentTarget.style.transform = 'translateY(0)';
                                                 e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
                                                 e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
+                                                const avatar = e.currentTarget.querySelector('.suggested-avatar') as HTMLElement;
+                                                if (avatar) avatar.style.transform = 'scale(1)';
                                             }}
                                         >
-                                            <div style={{ width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 800, color: 'white', boxShadow: '0 8px 20px rgba(139, 92, 246, 0.25)', transition: 'transform 0.3s ease' }} className="group-hover:scale-110">
+                                            <div className="suggested-avatar" style={{ width: '4.5rem', height: '4.5rem', borderRadius: '1.5rem', background: 'linear-gradient(135deg, #8b5cf6, #ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 800, color: 'white', boxShadow: '0 8px 20px rgba(139, 92, 246, 0.25)', transition: 'transform 0.3s ease' }}>
                                                 {profile.email?.charAt(0).toUpperCase() || '?'}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

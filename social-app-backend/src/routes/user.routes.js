@@ -15,8 +15,8 @@ router.put('/profile', verifyToken, userController.updateProfile);
 // GET /api/users/suggestions - Get random user suggestions
 router.get('/suggestions', verifyToken, userController.getSuggestions);
 
-// GET /api/users/:id - Get a specific user (Admin only)
-router.get('/:id', verifyToken, authorizeRoles('admin'), userController.getUserById);
+// GET /api/users/:id - Get a specific user (Public to authenticated users)
+router.get('/:id', verifyToken, userController.getUserById);
 
 // PUT /api/users/:id/role - Update a specific user's role (Admin only)
 router.put('/:id/role', verifyToken, authorizeRoles('admin'), userController.updateUserRole);

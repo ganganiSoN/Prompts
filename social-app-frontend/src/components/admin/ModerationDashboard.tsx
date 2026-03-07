@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getReports, updateReport } from '../../api/moderation';
+import { getReports, updateReport, getUserModerationGrid } from '../../api/moderation';
 import { useToast } from '../../context/ToastContext';
-import { Shield, CheckCircle, AlertTriangle, EyeOff, Ban, Clock, Loader2, ChevronDown } from 'lucide-react';
+import { Shield, CheckCircle, AlertTriangle, EyeOff, Ban, Clock, Loader2, ChevronDown, UserSearch, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
@@ -9,10 +9,28 @@ export const ModerationDashboard = () => {
     const { user } = useAuth();
     const { success, error: showError } = useToast();
 
+    // Tabs state
+    const [activeTab, setActiveTab] = useState<'queue' | 'user'>('queue');
+
+    // Queue state
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('ALL');
     const [processingId, setProcessingId] = useState<string | null>(null);
+
+    // User Search State
+    const [searchUserId, setSearchUserId] = useState('');
+    const [userGridData, setUserGridData] = useState<any[]>([]);
+    const [userData, setUserData] = useState<any>(null);
+    const [loadingUser, setLoadingUser] = useState(false);
+
+    // Advanced Grid Filter State
+    const [gridMinRisk, setGridMinRisk] = useState<string>('');
+    const [gridMaxRisk, setGridMaxRisk] = useState<string>('');
+    const [gridCategory, setGridCategory] = useState<string>('ALL');
+    const [gridCommunity, setGridCommunity] = useState<string>('ALL');
+    const [gridStatus, setGridStatus] = useState<string>('ALL');
+    const [gridDateRange, setGridDateRange] = useState<string>('ALL');
 
     // Redirect non-admins/moderators
     if (user && user.role !== 'admin' && user.role !== 'moderator') {
@@ -58,6 +76,41 @@ export const ModerationDashboard = () => {
         }
     };
 
+    const fetchUserGridData = async (userIdToSearch: string) => {
+        if (!userIdToSearch.trim()) return;
+        setLoadingUser(true);
+        try {
+            const data = await getUserModerationGrid(userIdToSearch.trim(), {
+                minRisk: gridMinRisk,
+                maxRisk: gridMaxRisk,
+                category: gridCategory,
+                community: gridCommunity,
+                status: gridStatus,
+                dateRange: gridDateRange
+            });
+            setUserData(data.user);
+            setUserGridData(data.gridData || []);
+        } catch (err: any) {
+            showError(err.message || 'Failed to find user or their moderation data');
+            setUserData(null);
+            setUserGridData([]);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
+
+    const handleSearchUser = (e: React.FormEvent) => {
+        e.preventDefault();
+        fetchUserGridData(searchUserId);
+    };
+
+    useEffect(() => {
+        if (userData && searchUserId) {
+            fetchUserGridData(searchUserId);
+        }
+        // eslint-disable-next-line
+    }, [gridMinRisk, gridMaxRisk, gridCategory, gridCommunity, gridStatus, gridDateRange]);
+
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'SUBMITTED':
@@ -76,41 +129,323 @@ export const ModerationDashboard = () => {
 
     return (
         <div className="page-container max-w-5xl mx-auto animate-fade-in w-full">
-            <header className="page-header mt-4 mb-6 flex justify-between items-end flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-red-500/10 rounded-xl">
-                        <Shield size={28} className="text-red-500" />
+            <header className="page-header mt-4 mb-6 flex flex-col gap-6">
+                <div className="flex justify-between items-end flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-red-500/10 rounded-xl">
+                            <Shield size={28} className="text-red-500" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Moderation</h1>
+                            <p className="text-sm text-gray-500">Review community reports and profiles.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Moderation Queue</h1>
-                        <p className="text-sm text-gray-500">Review and action community reports.</p>
-                    </div>
+
+                    {activeTab === 'queue' && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', padding: '0.5rem', borderRadius: '1rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                            {[
+                                { id: 'ALL', label: 'All Reports' },
+                                { id: 'SUBMITTED', label: 'New' },
+                                { id: 'AUTO_RISK_SCORING', label: 'Auto Risk Scoring' },
+                                { id: 'MODERATOR_REVIEW', label: 'Under Review' },
+                                { id: 'ESCALATED', label: 'Escalated' },
+                                { id: 'CLOSED', label: 'Closed' }
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => setFilter(opt.id)}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.75rem',
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        border: filter === opt.id ? '1px solid transparent' : '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: filter === opt.id ? 'linear-gradient(135deg, var(--primary), #a855f7)' : 'rgba(15, 23, 42, 0.4)',
+                                        color: filter === opt.id ? 'white' : '#94a3b8',
+                                        boxShadow: filter === opt.id ? '0 4px 14px 0 rgba(139, 92, 246, 0.39)' : 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        if (filter !== opt.id) {
+                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                            e.currentTarget.style.color = '#fff';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (filter !== opt.id) {
+                                            e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
+                                            e.currentTarget.style.color = '#94a3b8';
+                                        }
+                                    }}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                <div className="relative flex items-center gap-2">
-                    <select
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        className="custom-select bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-xl border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 py-2 pl-4 pr-10 cursor-pointer shadow-sm font-medium"
+                <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.05)', padding: '0.4rem', borderRadius: '1rem', border: '1px solid rgba(255, 255, 255, 0.1)', maxWidth: '400px' }}>
+                    <button
+                        onClick={() => setActiveTab('queue')}
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.65rem 1rem',
+                            borderRadius: '0.75rem',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            border: activeTab === 'queue' ? '1px solid transparent' : '1px solid transparent',
+                            background: activeTab === 'queue' ? '#1e293b' : 'transparent',
+                            color: activeTab === 'queue' ? 'white' : '#94a3b8',
+                            boxShadow: activeTab === 'queue' ? '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'queue') {
+                                e.currentTarget.style.color = '#fff';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'queue') {
+                                e.currentTarget.style.color = '#94a3b8';
+                                e.currentTarget.style.background = 'transparent';
+                            }
+                        }}
                     >
-                        <option value="ALL">All Reports</option>
-                        <option value="SUBMITTED">New</option>
-                        <option value="AUTO_RISK_SCORING">Auto Risk Scoring</option>
-                        <option value="MODERATOR_REVIEW">Under Review</option>
-                        <option value="ESCALATED">Escalated</option>
-                        <option value="CLOSED">Closed</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <ChevronDown size={16} />
-                    </div>
+                        <Shield size={18} /> Queue
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('user')}
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.65rem 1rem',
+                            borderRadius: '0.75rem',
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            border: activeTab === 'user' ? '1px solid transparent' : '1px solid transparent',
+                            background: activeTab === 'user' ? '#1e293b' : 'transparent',
+                            color: activeTab === 'user' ? 'white' : '#94a3b8',
+                            boxShadow: activeTab === 'user' ? '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (activeTab !== 'user') {
+                                e.currentTarget.style.color = '#fff';
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (activeTab !== 'user') {
+                                e.currentTarget.style.color = '#94a3b8';
+                                e.currentTarget.style.background = 'transparent';
+                            }
+                        }}
+                    >
+                        <UserSearch size={18} /> User Search
+                    </button>
                 </div>
             </header>
 
-            {loading ? (
-                <div className="flex justify-center py-12">
-                    <Loader2 className="animate-spin text-red-500" size={32} />
+            {activeTab === 'user' && (
+                <div className="animate-fade-in">
+                    <form onSubmit={handleSearchUser} style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', flex: 1, maxWidth: '28rem' }}>
+                            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} size={20} />
+                            <input
+                                type="text"
+                                value={searchUserId}
+                                onChange={(e) => setSearchUserId(e.target.value)}
+                                placeholder="Enter User ID..."
+                                style={{
+                                    width: '100%',
+                                    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                                    color: 'white',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '0.75rem',
+                                    padding: '0.75rem 1rem 0.75rem 3rem',
+                                    outline: 'none',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.currentTarget.style.borderColor = '#8b5cf6';
+                                    e.currentTarget.style.boxShadow = '0 0 0 4px rgba(139, 92, 246, 0.25)';
+                                }}
+                                onBlur={(e) => {
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+                        <button 
+                            type="submit" 
+                            disabled={loadingUser || !searchUserId.trim()} 
+                            className="btn btn-primary"
+                            style={{ width: 'auto', padding: '0.75rem 2rem', opacity: (loadingUser || !searchUserId.trim()) ? 0.5 : 1 }}
+                        >
+                            {loadingUser ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
+                        </button>
+                    </form>
+
+                    {userData && (
+                        <div className="fade-in" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(30, 41, 59, 0.4)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
+                                <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Score</label>
+                                <select 
+                                    value={gridMinRisk + '-' + gridMaxRisk}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'ALL') { setGridMinRisk(''); setGridMaxRisk(''); }
+                                        else {
+                                            const [min, max] = val.split('-');
+                                            setGridMinRisk(min);
+                                            setGridMaxRisk(max);
+                                        }
+                                    }}
+                                    className="custom-select bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm py-2 px-3 rounded-lg"
+                                >
+                                    <option value="ALL">All Scores</option>
+                                    <option value="0.8-">High (&gt;80%)</option>
+                                    <option value="0.5-0.8">Medium (50-80%)</option>
+                                    <option value="-0.5">Low (&lt;50%)</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
+                                <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Category</label>
+                                <select value={gridCategory} onChange={e => setGridCategory(e.target.value)} className="custom-select bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm py-2 px-3 rounded-lg">
+                                    <option value="ALL">All Types</option>
+                                    <option value="Hate Speech">Hate Speech</option>
+                                    <option value="Spam">Spam</option>
+                                    <option value="Misinformation">Misinformation</option>
+                                    <option value="Harassment">Harassment</option>
+                                    <option value="NSFW">NSFW</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
+                                <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Community</label>
+                                <select value={gridCommunity} onChange={e => setGridCommunity(e.target.value)} className="custom-select bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm py-2 px-3 rounded-lg">
+                                    <option value="ALL">All Communities</option>
+                                    <option value="General">General</option>
+                                    <option value="Tech">Tech</option>
+                                    <option value="Art">Art</option>
+                                    <option value="Gaming">Gaming</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
+                                <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</label>
+                                <select value={gridStatus} onChange={e => setGridStatus(e.target.value)} className="custom-select bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm py-2 px-3 rounded-lg">
+                                    <option value="ALL">All Statuses</option>
+                                    <option value="PUBLISHED">Published</option>
+                                    <option value="FLAGGED">Flagged</option>
+                                    <option value="UNDER_REVIEW">Under Review</option>
+                                    <option value="REMOVED">Removed</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: '140px' }}>
+                                <label style={{ fontSize: '0.625rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date</label>
+                                <select value={gridDateRange} onChange={e => setGridDateRange(e.target.value)} className="custom-select bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm py-2 px-3 rounded-lg">
+                                    <option value="ALL">All Time</option>
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {userData && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(30, 41, 59, 0.6)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                            <div style={{ width: '3rem', height: '3rem', borderRadius: '9999px', background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem', fontWeight: 700, color: '#818cf8' }}>
+                                {userData.name?.[0] || userData.email?.[0] || '?'}
+                            </div>
+                            <div>
+                                <h3 style={{ fontWeight: 700, color: 'white', margin: 0 }}>{userData.name || 'Unknown'}</h3>
+                                <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: '0.25rem 0 0 0' }}>@{userData.email?.split('@')[0]} • Joined {new Date(userData.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <div style={{ marginLeft: 'auto' }}>
+                                <span style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '9999px', ...(userData.status === 'SUSPENDED' ? { background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' } : userData.status === 'WARNED' ? { background: 'rgba(249, 115, 22, 0.2)', color: '#fdba74' } : { background: 'rgba(34, 197, 94, 0.2)', color: '#86efac' }) }}>
+                                    {userData.status || 'ACTIVE'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {(!userGridData || userGridData.length === 0) && userData && !loadingUser ? (
+                        <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
+                            <CheckCircle className="w-12 h-12 text-green-500 mb-4" />
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">No offenses found</h3>
+                            <p className="text-gray-500 mt-2">This user has no reported posts.</p>
+                        </div>
+                    ) : userGridData.length > 0 && (
+                        <div style={{ backgroundColor: 'rgba(30, 41, 59, 0.4)', borderRadius: '1rem', border: '1px solid rgba(255, 255, 255, 0.1)', overflow: 'hidden', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', fontWeight: 600 }}>
+                                            <th style={{ padding: '1rem' }}>Post ID</th>
+                                            <th style={{ padding: '1rem' }}>User</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Risk Score</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Reports</th>
+                                            <th style={{ padding: '1rem' }}>Top Category</th>
+                                            <th style={{ padding: '1rem' }}>Status</th>
+                                            <th style={{ padding: '1rem' }}>Created Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {userGridData.map((row) => (
+                                            <tr 
+                                                key={row.postId} 
+                                                style={{ transition: 'background-color 0.2s', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }} 
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'} 
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '1rem', fontSize: '0.875rem', fontFamily: 'monospace', color: '#9ca3af' }}>{row.postId.substring(0, 8)}...</td>
+                                                <td style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: 500, color: 'white' }}>@{userData.email?.split('@')[0]}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: row.riskScore > 0.8 ? '#ef4444' : row.riskScore > 0.5 ? '#f97316' : '#22c55e' }}>
+                                                        {Math.round(row.riskScore * 100)}%
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: '#d1d5db' }}>{row.reportCount}</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <span style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '0.25rem', backgroundColor: 'rgba(55, 65, 81, 0.5)', color: '#d1d5db' }}>
+                                                        {row.category}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{getStatusBadge(row.status || 'UNKNOWN')}</td>
+                                                <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#9ca3af' }}>
+                                                    {new Date(row.createdDate).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            ) : reports.length === 0 ? (
+            )}
+
+            {activeTab === 'queue' && (
+                <div className="animate-fade-in">
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="animate-spin text-red-500" size={32} />
+                    </div>
+                ) : reports.length === 0 ? (
                 <div className="glass-card flex flex-col items-center justify-center p-12 text-center">
                     <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-4">
                         <CheckCircle className="w-8 h-8 text-green-500" />
@@ -143,38 +478,67 @@ export const ModerationDashboard = () => {
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <button
                                         onClick={() => handleAction(report._id, 'DISMISS')}
                                         disabled={processingId === report._id || report.status === 'CLOSED'}
-                                        className="btn btn-outline text-xs py-1.5 px-3"
+                                        style={{
+                                            padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem',
+                                            background: 'rgba(255, 255, 255, 0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', transition: 'all 0.2s',
+                                            opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
+                                        }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
                                     >
                                         Dismiss
                                     </button>
 
-                                    <div className="relative group">
+                                    <div 
+                                        style={{ position: 'relative', paddingBottom: '0.5rem', marginBottom: '-0.5rem' }} 
+                                        onMouseEnter={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'block'; }}
+                                        onMouseLeave={(e) => { const menu = e.currentTarget.querySelector('.dropdown-menu') as HTMLElement; if (menu) menu.style.display = 'none'; }}
+                                    >
                                         <button
                                             disabled={processingId === report._id || report.status === 'CLOSED'}
-                                            className="btn text-xs py-1.5 px-3 bg-red-500 hover:bg-red-600 text-white flex items-center gap-1"
+                                            style={{
+                                                padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem',
+                                                background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                                                opacity: (processingId === report._id || report.status === 'CLOSED') ? 0.5 : 1
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.background = '#4f46e5'}
+                                            onMouseLeave={e => e.currentTarget.style.background = '#6366f1'}
                                         >
                                             Take Action <ChevronDown size={14} />
                                         </button>
-                                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 py-1 hidden group-hover:block z-10">
+                                        <div 
+                                            className="dropdown-menu"
+                                            style={{ 
+                                                display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '0.4rem', width: '13rem', 
+                                                background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(8px)', borderRadius: '0.5rem', border: '1px solid rgba(255, 255, 255, 0.1)', 
+                                                padding: '0.5rem 0', zIndex: 10, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                                            }}
+                                        >
                                             <button
                                                 onClick={() => handleAction(report._id, 'RESOLVE', 'REMOVED')}
-                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fca5a5', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <EyeOff size={14} /> Remove Post
                                             </button>
                                             <button
                                                 onClick={() => handleAction(report._id, 'RESOLVE', 'USER_WARNED')}
-                                                className="w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-center gap-2"
+                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#fdba74', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.1s' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <AlertTriangle size={14} /> Warn User + Remove
                                             </button>
                                             <button
                                                 onClick={() => handleAction(report._id, 'RESOLVE', 'USER_SUSPENDED')}
-                                                className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold border-t border-gray-100 dark:border-gray-700 flex items-center gap-2 mt-1 pt-2"
+                                                style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#ef4444', fontWeight: 700, background: 'transparent', borderTop: '1px solid rgba(255, 255, 255, 0.05)', borderBottom: 'none', borderLeft: 'none', borderRight: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', transition: 'all 0.1s' }}
+                                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <Ban size={14} /> Suspend Author
                                             </button>
@@ -205,6 +569,8 @@ export const ModerationDashboard = () => {
                         </div>
                     ))}
                 </div>
+            )}
+            </div>
             )}
         </div>
     );

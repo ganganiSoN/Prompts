@@ -86,3 +86,109 @@ exports.updateReport = async (req, res) => {
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };
+
+// Get Single User Moderation Grid
+exports.getUserModerationGrid = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { minRisk, maxRisk, category, community, status, dateRange } = req.query;
+
+        // 1. Verify user exists
+        const user = await User.findById(userId).select('name email avatar createdAt status');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // 2. Build the initial match for Post fields
+        const postMatch = { 'postDoc.author': new require('mongoose').Types.ObjectId(userId) };
+        if (community && community !== 'ALL') {
+            postMatch['postDoc.community'] = community;
+        }
+        if (status && status !== 'ALL') {
+            postMatch['postDoc.status'] = status;
+        }
+
+        // Date Range Logic
+        if (dateRange && dateRange !== 'ALL') {
+            const date = new Date();
+            if (dateRange === '7') {
+                date.setDate(date.getDate() - 7);
+                postMatch['postDoc.createdAt'] = { $gte: date };
+            } else if (dateRange === '30') {
+                date.setDate(date.getDate() - 30);
+                postMatch['postDoc.createdAt'] = { $gte: date };
+            }
+        }
+
+        // 3. Aggregate reports
+        const aggregatedReports = await Report.aggregate([
+            {
+                $lookup: {
+                    from: 'posts',
+                    localField: 'post',
+                    foreignField: '_id',
+                    as: 'postDoc'
+                }
+            },
+            { $unwind: '$postDoc' },
+            { $match: postMatch },
+            {
+                $group: {
+                    _id: '$post',
+                    postContent: { $first: '$postDoc.content' },
+                    postCreatedAt: { $first: '$postDoc.createdAt' },
+                    postStatus: { $first: '$postDoc.status' },
+                    reportCount: { $sum: 1 },
+                    maxRiskScore: { $max: '$aiToxicityScore' },
+                    allReasons: { $push: '$reason' }
+                }
+            },
+            { $sort: { reportCount: -1 } }
+        ]);
+
+        // 4. Process and filter calculated fields (Category & Risk Score)
+        let gridData = aggregatedReports.map(agg => {
+            const reasonCounts = {};
+            let topReason = 'Unknown';
+            let maxCount = 0;
+            
+            agg.allReasons.forEach(reason => {
+                reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+                if (reasonCounts[reason] > maxCount) {
+                    maxCount = reasonCounts[reason];
+                    topReason = reason;
+                }
+            });
+
+            return {
+                postId: agg._id,
+                content: agg.postContent,
+                createdDate: agg.postCreatedAt,
+                status: agg.postStatus,
+                reportCount: agg.reportCount,
+                riskScore: agg.maxRiskScore,
+                category: topReason
+            };
+        });
+
+        // Apply dynamic filters manually
+        if (category && category !== 'ALL') {
+            gridData = gridData.filter(row => row.category === category);
+        }
+        if (minRisk !== undefined && minRisk !== '') {
+            gridData = gridData.filter(row => row.riskScore >= parseFloat(minRisk));
+        }
+        if (maxRisk !== undefined && maxRisk !== '') {
+            gridData = gridData.filter(row => row.riskScore <= parseFloat(maxRisk));
+        }
+
+        res.status(200).json({
+            user,
+            gridData
+        });
+
+    } catch (error) {
+        console.error('Error fetching user moderation grid:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};

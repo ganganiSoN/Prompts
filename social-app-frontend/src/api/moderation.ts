@@ -53,3 +53,23 @@ export const updateReport = async (reportId: string, data: { status?: string; de
     }
     return response.json();
 };
+
+export const getUserModerationGrid = async (userId: string, filters: any = {}) => {
+    const params = new URLSearchParams();
+    if (filters.minRisk !== undefined) params.append('minRisk', filters.minRisk.toString());
+    if (filters.maxRisk !== undefined) params.append('maxRisk', filters.maxRisk.toString());
+    if (filters.category && filters.category !== 'ALL') params.append('category', filters.category);
+    if (filters.community && filters.community !== 'ALL') params.append('community', filters.community);
+    if (filters.status && filters.status !== 'ALL') params.append('status', filters.status);
+    if (filters.dateRange && filters.dateRange !== 'ALL') params.append('dateRange', filters.dateRange);
+
+    const response = await fetch(`${API_URL}/user/${userId}/reports?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch user moderation grid');
+    }
+    return response.json();
+};

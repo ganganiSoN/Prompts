@@ -16,6 +16,7 @@ import {
 import { engageWithPost, repostPost, deletePost, updatePost, voteOnPoll } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { CommentSection } from './CommentSection';
 import { RichTextEditor } from './RichTextEditor';
 import { ReportModal } from './ReportModal';
@@ -116,6 +117,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
     const { error: showError, success } = useToast();
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     // Check if the current user is the author of the post
     // The post.author could be populated (object with _id) or just a string ID
@@ -141,11 +143,18 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                 <div className="mb-4 mt-2">
                     {post.content && <div className="post-content-area rich-text-content mb-3" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: post.content }} />}
                     <div className="border border-indigo-100 dark:border-gray-700 rounded-xl p-4 bg-white/50 dark:bg-gray-800/40 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-gray-600 transition-colors">
-                        <div className="flex items-center gap-2 mb-3">
+                        <div 
+                            className="flex items-center gap-2 mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const originalAuthorId = original.author?._id || original.author;
+                                if (originalAuthorId) navigate(`/profile/${originalAuthorId}`);
+                            }}
+                        >
                             <div className="post-avatar w-6 h-6 text-[10px]">
                                 {original.author?.email ? original.author.email.charAt(0).toUpperCase() : '?'}
                             </div>
-                            <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{original.author?.email?.split('@')[0]}</span>
+                            <span className="font-bold text-sm text-gray-900 dark:text-gray-100 hover:underline">{original.author?.email?.split('@')[0]}</span>
                             <span className="text-xs text-gray-500">· {new Date(original.createdAt).toLocaleDateString()}</span>
                         </div>
                         <div className="text-sm text-gray-800 dark:text-gray-300" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
@@ -402,13 +411,19 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             )}
 
             <div className="post-header">
-                <div className="post-author-info">
+                <div 
+                    className="post-author-info cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (authorId) navigate(`/profile/${authorId}`);
+                    }}
+                >
                     <div className="post-avatar">
-                        {post.author?.email ? post.author.email.charAt(0) : '?'}
+                        {post.author?.email ? post.author.email.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div className="post-author-details">
                         <div className="post-author-name-row">
-                            <h3 className="post-author-name">
+                            <h3 className="post-author-name hover:underline">
                                 {post.author?.email?.split('@')[0] || 'Unknown User'}
                             </h3>
                             {post.community !== 'General' && (

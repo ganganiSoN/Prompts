@@ -11,7 +11,7 @@ interface FeedProps {
     followingOnly?: boolean;
 }
 
-export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) => {
+export const Feed: React.FC<FeedProps> = ({ community, followingOnly = true }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -84,7 +84,7 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
     // Load Initial Suggestions
     useEffect(() => {
         const fetchSuggestions = async () => {
-            if (community || followingOnly) return; // Only show on general Home Feed
+            if (community) return; // Only show on general Home Feed
             try {
                 const data = await getUserSuggestions();
                 setSuggestions(data);
@@ -134,7 +134,7 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
 
     const sugObserver = useRef<IntersectionObserver | null>(null);
     const lastSugElementRef = useCallback((node: HTMLDivElement | null) => {
-        if (loadingSuggestions || loadingMoreSug || community || followingOnly) return;
+        if (loadingSuggestions || loadingMoreSug || community) return;
         if (sugObserver.current) sugObserver.current.disconnect();
 
         sugObserver.current = new IntersectionObserver(entries => {
@@ -144,7 +144,7 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
         });
 
         if (node) sugObserver.current.observe(node);
-    }, [loadingSuggestions, loadingMoreSug, hasMoreSug, community, followingOnly]);
+    }, [loadingSuggestions, loadingMoreSug, hasMoreSug, community]);
 
     if (error) {
         return (
@@ -159,6 +159,44 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
             </div>
         );
     }
+
+    const renderSuggestionsBlock = () => (
+        <div key="suggestions-block" style={{ marginBottom: '1rem' }} className="my-8 p-6 glass-card rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30">
+            <h2 className="flex items-center gap-2 mb-4 text-xl font-semibold text-gray-900 dark:text-white">
+                <UserPlus size={24} className="text-indigo-500" />
+                Suggested Connections
+            </h2>
+            <div className="flex gap-4 pb-4" style={{ overflowX: 'auto', scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}>
+                {suggestions.map((suggestion, sIndex) => (
+                    <div
+                        ref={suggestions.length === sIndex + 1 ? lastSugElementRef : null}
+                        key={suggestion._id}
+                        className="suggestion-card bg-white dark:bg-gray-800 border-none shadow-sm"
+                        style={{ marginTop: '0.5rem', marginRight: '1rem', marginBottom: '1rem', minWidth: '300px', flexShrink: 0, scrollSnapAlign: 'start' }}
+                    >
+                        <div className="suggestion-content">
+                            <div className="suggestion-avatar">
+                                {suggestion.name.charAt(0)}
+                            </div>
+                            <div className="suggestion-info">
+                                <span className="suggestion-name">{suggestion.name}</span>
+                                <span className="suggestion-fallback">@{suggestion.username || suggestion.name.toLowerCase().replace(/[^a-z0-9]/g, '')}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleFollow(suggestion._id)}
+                            className={`btn btn-follow px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${suggestion.isFollowing
+                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400'
+                                : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                }`}
+                        >
+                            {suggestion.isFollowing ? 'Following' : 'Follow'}
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 
     return (
         <div className="w-full relative pb-20">
@@ -184,10 +222,13 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
                         <Loader2 className="animate-spin text-blue-500" size={32} />
                     </div>
                 ) : posts.length === 0 ? (
-                    <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-800">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">No posts yet</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mt-2">Be the first to share something!</p>
-                    </div>
+                    <>
+                        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-800 mb-6">
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No posts yet</h3>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2">Follow some people to fill your feed!</p>
+                        </div>
+                        {!community && !loadingSuggestions && suggestions.length > 0 && renderSuggestionsBlock()}
+                    </>
                 ) : (
                     <>
                         {posts.map((post, index) => {
@@ -197,43 +238,7 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
                                 </div>
                             );
 
-                            const sugElement = (!community && !followingOnly && !loadingSuggestions && suggestions.length > 0 && index === sugInsertIndex) ? (
-                                <div key="suggestions-block" style={{ marginBottom: '1rem' }} className="my-8 p-6 glass-card rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30">
-                                    <h2 className="flex items-center gap-2 mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-                                        <UserPlus size={24} className="text-indigo-500" />
-                                        Suggested Connections
-                                    </h2>
-                                    <div className="flex gap-4 pb-4" style={{ overflowX: 'auto', scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}>
-                                        {suggestions.map((suggestion, sIndex) => (
-                                            <div
-                                                ref={suggestions.length === sIndex + 1 ? lastSugElementRef : null}
-                                                key={suggestion._id}
-                                                className="suggestion-card bg-white dark:bg-gray-800 border-none shadow-sm"
-                                                style={{ marginTop: '0.5rem', marginRight: '1rem', marginBottom: '1rem', minWidth: '300px', flexShrink: 0, scrollSnapAlign: 'start' }}
-                                            >
-                                                <div className="suggestion-content">
-                                                    <div className="suggestion-avatar">
-                                                        {suggestion.name.charAt(0)}
-                                                    </div>
-                                                    <div className="suggestion-info">
-                                                        <span className="suggestion-name">{suggestion.name}</span>
-                                                        <span className="suggestion-fallback">@{suggestion.username || suggestion.name.toLowerCase().replace(/[^a-z0-9]/g, '')}</span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleFollow(suggestion._id)}
-                                                    className={`btn btn-follow px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${suggestion.isFollowing
-                                                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400'
-                                                        : 'bg-indigo-500 text-white hover:bg-indigo-600'
-                                                        }`}
-                                                >
-                                                    {suggestion.isFollowing ? 'Following' : 'Follow'}
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null;
+                            const sugElement = (!community && !loadingSuggestions && suggestions.length > 0 && index === sugInsertIndex) ? renderSuggestionsBlock() : null;
 
                             return (
                                 <React.Fragment key={`fragment-${post._id}`}>

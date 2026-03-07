@@ -11,6 +11,7 @@ router.use(verifyToken);
 router.use(authorizeRoles('admin', 'moderator'));
 
 router.get('/reports', moderationController.getReports);
+router.get('/user/:userId/reports', moderationController.getUserModerationGrid);
 router.put('/reports/:id', moderationController.updateReport);
 
 module.exports = router;
