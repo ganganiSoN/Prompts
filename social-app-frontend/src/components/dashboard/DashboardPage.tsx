@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowUpRight, UserPlus, Tag, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
-import { getUserSuggestions, getUsers, followUser } from '../../api/users';
+import { getUserSuggestions, followUser } from '../../api/users';
 import { useNavigate } from 'react-router-dom';
 import { Feed } from '../feed/Feed';
 
@@ -30,16 +30,18 @@ const DashboardPage = () => {
     const [loadingMore, setLoadingMore] = useState(false);
     const observer = useRef<IntersectionObserver | null>(null);
 
-    const fetchMoreSuggestions = async (pageNum: number) => {
+    const fetchMoreSuggestions = async () => {
         try {
             setLoadingMore(true);
-            const data = await getUsers(pageNum, 10, '', 'createdAt_desc');
+            const data = await getUserSuggestions();
             setSuggestions((prev: any[]) => {
                 const existingIds = new Set(prev.map(u => u._id));
-                const newUsers = data.users.filter((u: any) => !existingIds.has(u._id) && u._id !== user?.id);
+                const newUsers = data.filter((u: any) => !existingIds.has(u._id) && u._id !== user?.id);
+                if (newUsers.length === 0) {
+                    setHasMore(false);
+                }
                 return [...prev, ...newUsers];
             });
-            setHasMore(pageNum < data.totalPages);
         } catch (error) {
             console.error("Failed to load more suggestions:", error);
         } finally {
@@ -72,7 +74,7 @@ const DashboardPage = () => {
             if (entries[0].isIntersecting && hasMore) {
                 const nextPage = page + 1;
                 setPage(nextPage);
-                fetchMoreSuggestions(nextPage);
+                fetchMoreSuggestions();
             }
         });
 

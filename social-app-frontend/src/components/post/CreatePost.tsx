@@ -54,13 +54,16 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
                 ? `${payload.content}\n${payload.mediaUrl}` // appending just to match previous backend logic for this iteration
                 : payload.content;
 
+            const isDraftSubmit = (e.nativeEvent as SubmitEvent).submitter?.getAttribute('name') === 'draft';
+
             const backendPostData = {
                 type: resolvedType.toLowerCase(),
                 content: stringifiedContent,
                 poll: payload.poll?.question ? payload.poll : undefined,
                 community: defaultCommunity || community || 'General',
                 isScheduled: !!payload.scheduledFor,
-                scheduledFor: payload.scheduledFor
+                scheduledFor: payload.scheduledFor,
+                status: isDraftSubmit ? 'DRAFT' : undefined
             };
 
             const newPost = await createPost(backendPostData);
@@ -116,14 +119,26 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
                             )}
 
 
-                            <button
-                                type="submit"
-                                disabled={isSubmitting || (!payload.content.replace(/<[^>]*>?/gm, '').trim() && !payload.mediaUrl && !payload.poll?.question)}
-                                className="post-publish-btn"
-                            >
-                                {isSubmitting ? 'Publishing...' : 'Publish'}
-                                <Send size={16} className={isSubmitting ? "animate-pulse" : ""} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    name="draft"
+                                    disabled={isSubmitting || (!payload.content.replace(/<[^>]*>?/gm, '').trim() && !payload.mediaUrl && !payload.poll?.question)}
+                                    className="btn btn-outline"
+                                    style={{ padding: '0.5rem 1rem' }}
+                                >
+                                    Save Draft
+                                </button>
+                                <button
+                                    type="submit"
+                                    name="publish"
+                                    disabled={isSubmitting || (!payload.content.replace(/<[^>]*>?/gm, '').trim() && !payload.mediaUrl && !payload.poll?.question)}
+                                    className="post-publish-btn"
+                                >
+                                    {isSubmitting ? 'Publishing...' : 'Publish'}
+                                    <Send size={16} className={isSubmitting ? "animate-pulse" : ""} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

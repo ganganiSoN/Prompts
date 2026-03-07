@@ -6,14 +6,14 @@ const User = require('../models/User');
 exports.createPost = async (req, res) => {
     try {
         const userId = req.user.userId; // assuming auth middleware attaches user.userId
-        const { type, content, poll, threadId, community, isScheduled, scheduledFor } = req.body;
+        const { type, content, poll, threadId, community, isScheduled, scheduledFor, status: explicitStatus } = req.body;
 
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        let status = 'PUBLISHED';
+        let status = explicitStatus === 'DRAFT' ? 'DRAFT' : 'PUBLISHED';
 
         // Rule 1: Finance community requires moderation
         if (community && community.toLowerCase() === 'finance') {
@@ -404,6 +404,22 @@ exports.updatePost = async (req, res) => {
         res.status(200).json(populatedPost);
     } catch (error) {
         console.error('Error updating post:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Get Drafts for the current user
+exports.getDrafts = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const drafts = await Post.find({ author: userId, status: 'DRAFT' })
+            .sort({ createdAt: -1 })
+            .populate('author', 'email _id name avatar');
+
+        res.status(200).json(drafts);
+    } catch (error) {
+        console.error('Error fetching drafts:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };
