@@ -6,11 +6,11 @@ import LoginPage from './components/auth/LoginPage';
 import SignupPage from './components/auth/SignupPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import MainLayout from './components/layout/MainLayout';
-import DashboardPage from './components/dashboard/DashboardPage';
 import ProfilePage from './components/profile/ProfilePage';
 import EditProfilePage from './components/profile/EditProfilePage';
 import SettingsPage from './components/settings/SettingsPage';
 import { Feed } from './components/feed/Feed';
+import { CreatePostPage } from './components/post/CreatePostPage';
 import DraftsPage from './components/post/DraftsPage';
 import { ExplorePage } from './components/explore/ExplorePage';
 import { AnalyticsPage } from './components/analytics/AnalyticsPage';
@@ -43,8 +43,9 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="feed" element={<Feed />} />
+        <Route index element={<Feed />} />
+        <Route path="feed" element={<Navigate to="/" replace />} />
+        <Route path="create-post" element={<CreatePostPage />} />
         <Route path="drafts" element={<DraftsPage />} />
         <Route path="explore" element={<ExplorePage />} />
         <Route path="analytics" element={<AnalyticsPage />} />

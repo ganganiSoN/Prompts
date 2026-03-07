@@ -125,13 +125,13 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onPostCreated, defaultCo
                             )}
 
 
-                            <div className="flex gap-2">
+                            <div className="flex gap-4 items-center">
                                 <button
                                     type="submit"
                                     name="draft"
                                     disabled={isSubmitting || (!payload.content.replace(/<[^>]*>?/gm, '').trim() && !payload.mediaUrl && !payload.poll?.question)}
                                     className="btn btn-outline"
-                                    style={{ padding: '0.5rem 1rem' }}
+                                    style={{ padding: '0.5rem 1rem', marginRight: '1rem' }}
                                 >
                                     Save Draft
                                 </button>

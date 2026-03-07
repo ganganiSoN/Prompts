@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2 } from 'lucide-react';
+import { User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
@@ -8,8 +8,7 @@ const Sidebar = () => {
   const { user } = useAuth();
 
   const navLinks = [
-    { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-    { name: 'Feed', path: '/feed', icon: <Activity size={20} /> },
+    { name: 'Home Feed', path: '/', icon: <Activity size={20} /> },
     { name: 'Explore', path: '/explore', icon: <Compass size={20} /> },
     { name: 'Profile', path: '/profile', icon: <User size={20} /> },
     { name: 'Drafts', path: '/drafts', icon: <Bookmark size={20} /> },
