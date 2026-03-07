@@ -198,14 +198,19 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) 
                             );
 
                             const sugElement = (!community && !followingOnly && !loadingSuggestions && suggestions.length > 0 && index === sugInsertIndex) ? (
-                                <div key="suggestions-block" className="my-8 p-6 glass-card rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30">
+                                <div key="suggestions-block" style={{ marginBottom: '1rem' }} className="my-8 p-6 glass-card rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30">
                                     <h2 className="flex items-center gap-2 mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                                         <UserPlus size={24} className="text-indigo-500" />
                                         Suggested Connections
                                     </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex gap-4 pb-4" style={{ overflowX: 'auto', scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}>
                                         {suggestions.map((suggestion, sIndex) => (
-                                            <div ref={suggestions.length === sIndex + 1 ? lastSugElementRef : null} key={suggestion._id} className="suggestion-card bg-white dark:bg-gray-800 border-none shadow-sm">
+                                            <div
+                                                ref={suggestions.length === sIndex + 1 ? lastSugElementRef : null}
+                                                key={suggestion._id}
+                                                className="suggestion-card bg-white dark:bg-gray-800 border-none shadow-sm"
+                                                style={{ marginTop: '0.5rem', marginRight: '1rem', marginBottom: '1rem', minWidth: '300px', flexShrink: 0, scrollSnapAlign: 'start' }}
+                                            >
                                                 <div className="suggestion-content">
                                                     <div className="suggestion-avatar">
                                                         {suggestion.name.charAt(0)}
