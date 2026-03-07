@@ -10,6 +10,7 @@ router.post('/', verifyToken, postController.createPost);
 router.get('/', verifyToken, postController.getFeed);
 router.get('/drafts', verifyToken, postController.getDrafts);
 router.get('/explore', verifyToken, postController.getExplore);
+router.get('/trending/hashtags', verifyToken, postController.getTrendingHashtags);
 router.post('/:id/engage', verifyToken, postController.engage);
 router.post('/:id/repost', verifyToken, postController.repostPost);
 router.post('/:id/vote', verifyToken, postController.votePoll);

@@ -43,6 +43,17 @@ exports.createPost = async (req, res) => {
             status = 'DRAFT';
         }
 
+        // Extract hashtags from content
+        const hashtags = [];
+        if (content) {
+            const matches = content.match(/#[\w]+/g);
+            if (matches) {
+                matches.forEach(tag => {
+                    hashtags.push(tag.substring(1).toLowerCase());
+                });
+            }
+        }
+
         const newPost = new Post({
             author: userId,
             type,
@@ -52,7 +63,8 @@ exports.createPost = async (req, res) => {
             community,
             status,
             isScheduled,
-            scheduledFor
+            scheduledFor,
+            hashtags
         });
 
         await newPost.save();
@@ -396,7 +408,18 @@ exports.updatePost = async (req, res) => {
         }
 
         // Only allow text/content updates and status transitions (e.g., DRAFT to PUBLISHED)
-        if (content !== undefined) post.content = content;
+        if (content !== undefined) {
+            post.content = content;
+            // Re-extract hashtags
+            const hashtags = [];
+            const matches = content.match(/#[\w]+/g);
+            if (matches) {
+                matches.forEach(tag => {
+                    hashtags.push(tag.substring(1).toLowerCase());
+                });
+            }
+            post.hashtags = hashtags;
+        }
         if (status !== undefined) post.status = status;
 
         await post.save();
@@ -406,6 +429,31 @@ exports.updatePost = async (req, res) => {
         res.status(200).json(populatedPost);
     } catch (error) {
         console.error('Error updating post:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Get Trending Hashtags
+exports.getTrendingHashtags = async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+
+        // Only look at hashtags from published posts in the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const trendingTags = await Post.aggregate([
+            { $match: { status: 'PUBLISHED', createdAt: { $gte: sevenDaysAgo } } },
+            { $unwind: '$hashtags' },
+            { $group: { _id: '$hashtags', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: parseInt(limit) },
+            { $project: { _id: 0, tag: '$_id', count: 1 } }
+        ]);
+
+        res.status(200).json(trendingTags);
+    } catch (error) {
+        console.error('Error fetching trending hashtags:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };
