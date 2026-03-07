@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-interface User {
+export interface User {
     id: string;
     email: string;
     name: string;
@@ -9,6 +9,9 @@ interface User {
     location?: string;
     interests?: string[];
     role: 'admin' | 'moderator' | 'user';
+    followersCount?: number;
+    followingCount?: number;
+    createdAt?: Date | string;
 }
 
 interface AuthContextType {

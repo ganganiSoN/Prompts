@@ -30,6 +30,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true
     }],
+    followersCount: {
+        type: Number,
+        default: 0
+    },
+    followingCount: {
+        type: Number,
+        default: 0
+    },
     password: {
         type: String,
         required: function () {

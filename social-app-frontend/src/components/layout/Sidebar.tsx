@@ -1,15 +1,21 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, Settings, Activity, Users } from 'lucide-react';
+import { LayoutDashboard, User, Settings, Activity, Users, Shield } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
+  const { user } = useAuth();
+
   const navLinks = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
     { name: 'Feed', path: '/feed', icon: <Activity size={20} /> },
     { name: 'Profile', path: '/profile', icon: <User size={20} /> },
     { name: 'Community', path: '/community', icon: <Users size={20} /> },
-    { name: 'Settings', path: '/settings', icon: <Settings size={20} /> },
   ];
+
+  navLinks.push({ name: 'Users', path: '/users', icon: <Shield size={20} /> });
+
+  navLinks.push({ name: 'Settings', path: '/settings', icon: <Settings size={20} /> });
 
   return (
     <aside className="sidebar glass-card">

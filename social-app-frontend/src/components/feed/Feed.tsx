@@ -4,7 +4,12 @@ import { CreatePost } from '../post/CreatePost';
 import { PostCard } from '../post/PostCard';
 import { Loader2 } from 'lucide-react';
 
-export const Feed: React.FC = () => {
+interface FeedProps {
+    community?: string;
+    followingOnly?: boolean;
+}
+
+export const Feed: React.FC<FeedProps> = ({ community, followingOnly = false }) => {
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +37,7 @@ export const Feed: React.FC = () => {
             else setLoadingMore(true);
 
             // Fetch exactly 10 posts per the requirements
-            const data = await getFeed(pageNum, 10);
+            const data = await getFeed(pageNum, 10, community, followingOnly);
 
             setPosts(prev => {
                 if (pageNum === 1) return data;
@@ -79,7 +84,7 @@ export const Feed: React.FC = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto py-6 px-4 sm:px-0">
+        <div className="w-full">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Home Feed</h1>
 
             <CreatePost onPostCreated={handlePostCreated} />

@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Users, Activity, CreditCard, ArrowUpRight, UserPlus, Tag } from 'lucide-react';
-import { getUserSuggestions } from '../../api/users';
+import { ArrowUpRight, UserPlus, Tag, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { getUserSuggestions, getUsers, followUser } from '../../api/users';
+import { useNavigate } from 'react-router-dom';
+import { Feed } from '../feed/Feed';
 
 const DashboardPage = () => {
     const { user } = useAuth();
@@ -22,12 +24,60 @@ const DashboardPage = () => {
         fetchSuggestions();
     }, []);
 
-    const stats = [
-        { title: 'Total Users', value: '1,234', change: '+12%', icon: <Users size={24} /> },
-        { title: 'Active Sessions', value: '891', change: '+5%', icon: <Activity size={24} /> },
-        { title: 'Server Load', value: '34%', change: '-2%', icon: <CreditCard size={24} /> },
-    ];
+    const navigate = useNavigate();
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const observer = useRef<IntersectionObserver | null>(null);
 
+    const fetchMoreSuggestions = async (pageNum: number) => {
+        try {
+            setLoadingMore(true);
+            const data = await getUsers(pageNum, 10, '', 'createdAt_desc');
+            setSuggestions((prev: any[]) => {
+                const existingIds = new Set(prev.map(u => u._id));
+                const newUsers = data.users.filter((u: any) => !existingIds.has(u._id) && u._id !== user?.id);
+                return [...prev, ...newUsers];
+            });
+            setHasMore(pageNum < data.totalPages);
+        } catch (error) {
+            console.error("Failed to load more suggestions:", error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const handleFollow = async (userId: string) => {
+        try {
+            const result = await followUser(userId);
+            // Update the suggestion specific to this user ID
+            setSuggestions((prev: any[]) =>
+                prev.map(u => {
+                    if (u._id === userId) {
+                        return { ...u, isFollowing: result.isFollowing };
+                    }
+                    return u;
+                })
+            );
+        } catch (error) {
+            console.error('Failed to follow suggestion', error);
+        }
+    };
+
+    const lastUserElementRef = useCallback((node: HTMLDivElement | null) => {
+        if (loadingSuggestions || loadingMore) return;
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                const nextPage = page + 1;
+                setPage(nextPage);
+                fetchMoreSuggestions(nextPage);
+            }
+        });
+
+        if (node) observer.current.observe(node);
+    }, [loadingSuggestions, loadingMore, hasMore, page]);
     return (
         <div className="page-container animate-fade-in">
             <header className="page-header">
@@ -41,86 +91,122 @@ const DashboardPage = () => {
                 </button>
             </header>
 
-            <div className="stats-grid mt-6">
-                {stats.map((stat, i) => (
-                    <div key={i} className="stat-card glass-card">
-                        <div className="stat-header">
-                            <span className="stat-title">{stat.title}</span>
-                            <div className="icon-wrapper">{stat.icon}</div>
-                        </div>
-                        <div className="stat-body mt-4">
-                            <span className="stat-value">{stat.value}</span>
-                            <span className={`stat-change ${stat.change.startsWith('+') ? 'positive' : 'negative'}`}>
-                                {stat.change}
-                            </span>
-                        </div>
+            <div className="mt-8">
+                <h2 className="flex items-center gap-2 mb-4 text-xl font-semibold">
+                    <UserPlus size={24} className="text-indigo-400" />
+                    Suggested Connections
+                </h2>
+
+                {loadingSuggestions ? (
+                    <div className="pb-4" style={{ display: 'flex', gap: '1rem', overflowX: 'auto' }}>
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="glass-card animate-pulse" style={{ minWidth: '280px', height: '8rem', borderRadius: '0.75rem' }}></div>
+                        ))}
                     </div>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-                <div className="glass-card dashboard-main lg:col-span-2">
-                    <h2>Recent Activity</h2>
-                    <div className="divider"></div>
-                    <div className="empty-state">
-                        <Activity size={48} className="empty-icon" />
-                        <p>No recent activity to display.</p>
-                    </div>
-                </div>
-
-                {/* User Suggestions Section */}
-                <div className="glass-card">
-                    <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                        <UserPlus size={20} className="text-indigo-400" />
-                        Suggested For You
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                        Based on your shared interests
-                    </p>
-
-                    {loadingSuggestions ? (
-                        <div className="animate-pulse space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex space-x-4 items-center">
-                                    <div className="rounded-full bg-gray-200 dark:bg-gray-700 h-10 w-10"></div>
-                                    <div className="flex-1 space-y-2 py-1">
-                                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : suggestions.length > 0 ? (
-                        <div className="suggestion-list">
-                            {suggestions.map((suggestedUser) => (
-                                <div key={suggestedUser._id} className="suggestion-card">
-                                    <div className="suggestion-content">
-                                        <div className="suggestion-avatar">
+                ) : suggestions.length > 0 ? (
+                    <div className="pb-6 pt-2" style={{ display: 'flex', gap: '1rem', overflowX: 'auto', scrollbarWidth: 'thin', scrollSnapType: 'x mandatory' }}>
+                        {suggestions.map((suggestedUser: any, index: number) => {
+                            const isLast = index === suggestions.length - 1;
+                            return (
+                                <div
+                                    key={suggestedUser._id + index}
+                                    ref={isLast ? lastUserElementRef : null}
+                                    className="glass-card transition-colors hover:bg-white/5"
+                                    style={{
+                                        flex: '0 0 auto',
+                                        width: '280px',
+                                        padding: '1.25rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                        scrollSnapAlign: 'center',
+                                        borderLeft: '4px solid var(--primary)'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+                                        <div
+                                            style={{
+                                                width: '3rem',
+                                                height: '3rem',
+                                                borderRadius: '50%',
+                                                border: '2px solid rgba(99, 102, 241, 0.3)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1.125rem',
+                                                fontWeight: 'bold',
+                                                background: 'linear-gradient(135deg, var(--primary), #a855f7)'
+                                            }}
+                                        >
                                             {suggestedUser.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <div className="suggestion-info">
-                                            <h4 className="suggestion-name">{suggestedUser.name}</h4>
-
+                                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                                            <h4 style={{ fontWeight: 600, color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1rem' }}>
+                                                {suggestedUser.name}
+                                            </h4>
                                             {suggestedUser.sharedInterestsCount > 0 ? (
-                                                <div className="suggestion-stats">
-                                                    <Tag size={12} />
-                                                    <span>{suggestedUser.sharedInterestsCount} shared interest{suggestedUser.sharedInterestsCount > 1 ? 's' : ''}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: '#a5b4fc', marginTop: '0.375rem' }}>
+                                                    <Tag size={10} />
+                                                    <span>{suggestedUser.sharedInterestsCount} shared interests</span>
                                                 </div>
                                             ) : (
-                                                <p className="suggestion-fallback">@{suggestedUser.email.split('@')[0]}</p>
+                                                <p style={{ fontSize: '0.75rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '0.25rem' }}>
+                                                    @{suggestedUser.email.split('@')[0]}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
-                                    <button className="btn btn-primary btn-follow">
-                                        Follow
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button
+                                            className={`btn ${suggestedUser.isFollowing ? 'btn-outline' : 'btn-primary'}`}
+                                            style={{
+                                                flex: 1,
+                                                padding: '0.375rem 0',
+                                                fontSize: '0.875rem',
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                gap: '0.25rem'
+                                            }}
+                                            onClick={() => handleFollow(suggestedUser._id)}
+                                        >
+                                            {suggestedUser.isFollowing ? (
+                                                <>
+                                                    <CheckCircle2 size={14} /> Following
+                                                </>
+                                            ) : (
+                                                'Follow'
+                                            )}
+                                        </button>
+                                        <button
+                                            className="btn btn-outline"
+                                            style={{ flex: 1, padding: '0.375rem 0', fontSize: '0.875rem', borderColor: 'rgba(255,255,255,0.1)', color: '#9ca3af' }}
+                                            onClick={() => navigate(`/users/${suggestedUser._id}`)}
+                                        >
+                                            View Profile
+                                        </button>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-gray-500">No suggestions right now.</p>
-                    )}
+                            );
+                        })}
+                        {loadingMore && (
+                            <div style={{ flex: '0 0 auto', width: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Loader2 className="animate-spin text-indigo-500" size={32} />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-500">No suggestions right now.</p>
+                )}
+            </div>
+
+            {/* Following Feed */}
+            <div className="mt-8">
+                <div className="flex items-center gap-2 mb-4">
+                    <RefreshCw size={24} className="text-indigo-400" />
+                    <h2 className="text-xl font-semibold">Following Activity</h2>
                 </div>
+                <Feed followingOnly={true} />
             </div>
         </div>
     );

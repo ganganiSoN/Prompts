@@ -70,8 +70,18 @@ exports.createPost = async (req, res) => {
 // Get Feed
 exports.getFeed = async (req, res) => {
     try {
-        const { page = 1, limit = 20, community } = req.query;
+        const { page = 1, limit = 20, community, followingOnly } = req.query;
         const query = { status: 'PUBLISHED' };
+        const userId = req.user?.userId;
+
+        if (followingOnly === 'true' && userId) {
+            // Get array of user IDs that current user follows
+            const followingEngagements = await Engagement.find({ user: userId, type: 'follow' }).select('targetUser');
+            const followingIds = followingEngagements.map(eng => eng.targetUser);
+            // Include user's own posts in their feed as well
+            followingIds.push(userId);
+            query.author = { $in: followingIds };
+        }
 
         if (community) {
             query.community = community;

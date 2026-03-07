@@ -32,13 +32,16 @@ export const createPost = async (postData: any) => {
     return response.json();
 };
 
-export const getFeed = async (page = 1, limit = 20, community?: string) => {
+export const getFeed = async (page = 1, limit = 20, community?: string, followingOnly = false) => {
     const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString()
     });
     if (community) {
         params.append('community', community);
+    }
+    if (followingOnly) {
+        params.append('followingOnly', 'true');
     }
 
     const response = await fetch(`${API_URL}?${params.toString()}`, {

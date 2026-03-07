@@ -12,10 +12,22 @@ exports.verifyToken = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        // Add userId from the decoded 'id' property
-        req.user = { userId: decoded.id, email: decoded.email };
+        // Add userId and role from the decoded token
+        req.user = { userId: decoded.id, email: decoded.email, role: decoded.role };
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Invalid token' });
     }
+};
+
+exports.authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(401).json({ message: 'Unauthorized: No assigned role' });
+        }
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ message: `Forbidden: Requires one of [${roles.join(', ')}]` });
+        }
+        next();
+    };
 };

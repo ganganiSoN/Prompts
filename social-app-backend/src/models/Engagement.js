@@ -9,11 +9,16 @@ const engagementSchema = new mongoose.Schema({
     post: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Post',
-        required: true
+        required: function () { return this.type !== 'follow'; }
+    },
+    targetUser: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: function () { return this.type === 'follow'; }
     },
     type: {
         type: String,
-        enum: ['like', 'comment', 'repost', 'bookmark', 'share', 'comment_like', 'poll_vote'],
+        enum: ['like', 'comment', 'repost', 'bookmark', 'share', 'comment_like', 'poll_vote', 'follow'],
         required: true
     },
     content: {
