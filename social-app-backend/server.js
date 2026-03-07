@@ -18,12 +18,14 @@ const userRoutes = require('./src/routes/user.routes');
 const postRoutes = require('./src/routes/post.routes');
 const communityRoutes = require('./src/routes/community.routes');
 const moderationRoutes = require('./src/routes/moderation.routes');
+const analyticsRoutes = require('./src/routes/analytics.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 
 // Initialize Background Jobs

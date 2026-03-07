@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
@@ -15,6 +15,9 @@ const Sidebar = () => {
   ];
 
 
+  navLinks.push({ name: 'Analytics', path: '/analytics', icon: <BarChart2 size={20} /> });
+  navLinks.push({ name: 'Users', path: '/users', icon: <Shield size={20} /> });
+  navLinks.push({ name: 'Settings', path: '/settings', icon: <Settings size={20} /> });
 
   return (
     <aside className="sidebar glass-card">

@@ -13,6 +13,7 @@ import SettingsPage from './components/settings/SettingsPage';
 import { Feed } from './components/feed/Feed';
 import DraftsPage from './components/post/DraftsPage';
 import { ExplorePage } from './components/explore/ExplorePage';
+import { AnalyticsPage } from './components/analytics/AnalyticsPage';
 import CommunityPage from './components/community/CommunityPage';
 import UsersPage from './components/admin/UsersPage';
 import UserDetailPage from './components/admin/UserDetailPage';
@@ -46,6 +47,7 @@ const AppRoutes = () => {
         <Route path="feed" element={<Feed />} />
         <Route path="drafts" element={<DraftsPage />} />
         <Route path="explore" element={<ExplorePage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
