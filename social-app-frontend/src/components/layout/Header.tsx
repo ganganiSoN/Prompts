@@ -78,7 +78,11 @@ const Header = () => {
                     </div>
                     <div className="user-info">
                         <span className="user-name">{user?.name || 'User'}</span>
-                        <span className="user-role">Admin</span>
+                        {(user?.role === 'admin' || user?.role === 'moderator') && (
+                            <span className="user-role" style={{ textTransform: 'capitalize' }}>
+                                {user.role}
+                            </span>
+                        )}
                     </div>
                 </div>
 

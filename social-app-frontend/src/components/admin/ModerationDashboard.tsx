@@ -489,32 +489,55 @@ export const ModerationDashboard = () => {
                                             <div key={`mod-${index}`} className="glass-card p-5 border border-l-4 border-l-orange-500 shadow-lg relative bg-gray-50 dark:bg-gray-800">
                                                 <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
                                                     <div>
-                                                        <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400 font-bold rounded-lg mb-2 inline-block shadow-sm">
-                                                            Risk Level: {Math.round(ticket.ai_toxicity_score)}/100
-                                                        </span>
+                                                        {(() => {
+                                                            const score = Math.round(ticket.ai_toxicity_score ?? ticket.aiToxicityScore ?? 0);
+                                                            const colors = score > 80 ? { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.3)' }
+                                                                : score > 40 ? { bg: 'rgba(249, 115, 22, 0.15)', text: '#fdba74', border: 'rgba(249, 115, 22, 0.3)' }
+                                                                    : { bg: 'rgba(34, 197, 94, 0.15)', text: '#86efac', border: 'rgba(34, 197, 94, 0.3)' };
+                                                            return (
+                                                                <span style={{
+                                                                    display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.75rem',
+                                                                    fontSize: '0.875rem', fontWeight: 700, borderRadius: '0.5rem', marginBottom: '0.5rem',
+                                                                    background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`,
+                                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                                                }}>
+                                                                    <AlertTriangle size={16} /> AI Risk Score: {score}%
+                                                                </span>
+                                                            );
+                                                        })()}
                                                         <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                                                             <strong>AI Tags: </strong>
-                                                            {ticket.moderation_reasons?.join(', ')}
+                                                            {(ticket.moderationReasons ?? ticket.moderation_reasons ?? [])?.join(', ') || 'None'}
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-2">
+                                                    <div className="flex gap-2 mt-2">
                                                         <button
-                                                            className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors border-none cursor-pointer"
+                                                            style={{
+                                                                padding: '0.4rem 0.8rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem',
+                                                                background: 'rgba(255, 255, 255, 0.1)', color: 'white', border: '1px solid rgba(255, 255, 255, 0.2)', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.transform = 'none'; }}
                                                             onClick={() => {
                                                                 setModTickets(prev => prev.filter((_, i) => i !== index));
                                                                 success("Ticket Ignored as Safe");
                                                             }}
                                                         >
-                                                            Ignore (Safe)
+                                                            <CheckCircle size={16} /> Ignore (Safe)
                                                         </button>
                                                         <button
-                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-colors border-none cursor-pointer"
+                                                            style={{
+                                                                padding: '0.4rem 0.8rem', fontSize: '0.875rem', fontWeight: 600, borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem',
+                                                                background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(239,68,68,0.1)'
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.transform = 'none'; }}
                                                             onClick={() => {
                                                                 setModTickets(prev => prev.filter((_, i) => i !== index));
                                                                 success("Post Confirmed Deleted");
                                                             }}
                                                         >
-                                                            Confirm Delete
+                                                            <Ban size={16} /> Confirm Delete
                                                         </button>
                                                     </div>
                                                 </div>
@@ -540,16 +563,27 @@ export const ModerationDashboard = () => {
                                             <div key={report._id} className="glass-card p-5 border-l-4 border-l-red-500 transition-all hover:shadow-md">
                                                 <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
                                                     <div>
-                                                        <div className="flex items-center gap-2 mb-2">
+                                                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                                             {getStatusBadge(report.status)}
-                                                            <span className="text-xs text-gray-400">
+                                                            <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                                                                 Reported {new Date(report.createdAt).toLocaleDateString()}
                                                             </span>
-                                                            {report.aiToxicityScore > 0.85 && (
-                                                                <span className="flex items-center gap-1 text-xs text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
-                                                                    <AlertTriangle size={12} /> High Toxicity ({Math.round(report.aiToxicityScore * 100)}%)
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                const toxicityScore = report.ai_toxicity_score ?? report.post?.ai_toxicity_score ?? report.aiToxicityScore ?? report.post?.aiToxicityScore;
+                                                                const score = Math.round(toxicityScore ?? 0);
+                                                                const colors = score > 80 ? { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.3)' }
+                                                                    : score > 40 ? { bg: 'rgba(249, 115, 22, 0.15)', text: '#fdba74', border: 'rgba(249, 115, 22, 0.3)' }
+                                                                        : { bg: 'rgba(34, 197, 94, 0.15)', text: '#86efac', border: 'rgba(34, 197, 94, 0.3)' };
+                                                                return (
+                                                                    <span style={{
+                                                                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem',
+                                                                        fontSize: '0.75rem', fontWeight: 700, borderRadius: '0.5rem',
+                                                                        background: colors.bg, color: colors.text, border: `1px solid ${colors.border}`
+                                                                    }}>
+                                                                        <AlertTriangle size={14} /> AI Risk Score: {score}%
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
                                                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                                             Reason: {report.reason}

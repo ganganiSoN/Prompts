@@ -786,13 +786,21 @@ async function processPostReport(io, postId, reporterId, reason) {
         // Combine into a total_toxicity_score
         const total_toxicity_score = Math.max(textScore, imageScore);
 
+        // Debug logging for user verification
+        console.log(`\n===========================================`);
+        console.log(`🧠 AI Moderation API Finished Processing`);
+        console.log(`📃 Text Toxicity Score: ${textScore.toFixed(2)} / 100`);
+        console.log(`🖼️ Image NSFW Score:  ${imageScore.toFixed(2)} / 100`);
+        console.log(`🛡️ Final Total Score:   ${total_toxicity_score.toFixed(2)} / 100`);
+        console.log(`===========================================\n`);
+
         // Database Updates (Native MongoDB Driver)
         let newStatus = postDoc.status;
         let moderationReasons = [reason];
 
         const updates = {
             $set: {
-                ai_toxicity_score: total_toxicity_score
+                aiToxicityScore: total_toxicity_score
             }
         };
 
@@ -800,7 +808,7 @@ async function processPostReport(io, postId, reporterId, reason) {
             newStatus = 'quarantined';
             moderationReasons.push('High AI Toxicity Score (nsfwjs/toxicity)');
             updates.$set.status = newStatus;
-            updates.$set.moderation_reasons = moderationReasons;
+            updates.$set.moderationReasons = moderationReasons;
         } else if (total_toxicity_score > 40 && total_toxicity_score <= 80) {
             newStatus = 'pending_review';
             updates.$set.status = newStatus;
@@ -818,7 +826,7 @@ async function processPostReport(io, postId, reporterId, reason) {
             reporter: new mongoose.Types.ObjectId(reporterId),
             reason,
             status: total_toxicity_score > 80 ? 'AUTO_RISK_SCORING' : 'SUBMITTED',
-            ai_toxicity_score: total_toxicity_score,
+            aiToxicityScore: total_toxicity_score,
             createdAt: new Date(),
             updatedAt: new Date()
         });
@@ -867,13 +875,13 @@ async function processPostReport(io, postId, reporterId, reason) {
             }
             if (total_toxicity_score > 45) {
                 // Attach the moderation items to the emitted post object
-                const emittedPost = { ...postDoc, status: newStatus, ai_toxicity_score: total_toxicity_score, moderation_reasons: moderationReasons };
+                const emittedPost = { ...postDoc, status: newStatus, aiToxicityScore: total_toxicity_score, moderationReasons: moderationReasons };
 
                 // Emit a new_mod_ticket event specifically to the Moderator Dashboard socket room
                 io.to('moderator_dashboard').emit('new_mod_ticket', {
                     post: emittedPost,
-                    ai_toxicity_score: total_toxicity_score,
-                    moderation_reasons: moderationReasons
+                    aiToxicityScore: total_toxicity_score,
+                    moderationReasons: moderationReasons
                 });
             }
         }

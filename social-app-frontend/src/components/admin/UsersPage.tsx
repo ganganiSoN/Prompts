@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUsers } from '../../api/users';
-import { Search, Shield, User as UserIcon, Calendar, ArrowUpRight } from 'lucide-react';
+import { getUsers, createModerator } from '../../api/users';
+import { Search, Shield, User as UserIcon, Calendar, ArrowUpRight, UserPlus, X } from 'lucide-react';
 import type { User } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import '../user/UserSuggestion.css';
@@ -18,8 +18,36 @@ const UsersPage = () => {
     const [sort, setSort] = useState('createdAt_desc');
     const [debouncedSearch, setDebouncedSearch] = useState('');
 
+    // Moderator Creation Modal State
+    const [showModeratorModal, setShowModeratorModal] = useState(false);
+    const [modEmail, setModEmail] = useState('');
+    const [modName, setModName] = useState('');
+    const [modPassword, setModPassword] = useState('');
+    const [modCreating, setModCreating] = useState(false);
+
     const observer = useRef<IntersectionObserver | null>(null);
-    const { error: showError } = useToast();
+    const { error: showError, success } = useToast();
+
+    const handleCreateModerator = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setModCreating(true);
+            await createModerator({ email: modEmail, name: modName, password: modPassword });
+            success('Moderator created successfully!');
+            setShowModeratorModal(false);
+            setModEmail('');
+            setModName('');
+            setModPassword('');
+
+            // Refresh list
+            setPage(1);
+            setUsers([]);
+        } catch (err: any) {
+            showError(err.message || 'Failed to create moderator');
+        } finally {
+            setModCreating(false);
+        }
+    };
 
     // Debounce search input
     useEffect(() => {
@@ -93,7 +121,7 @@ const UsersPage = () => {
 
     return (
         <div className="page-container animate-fade-in">
-            <header className="page-header mb-6">
+            <header className="page-header mb-6 flex justify-between items-start">
                 <div>
                     <h1 className="page-title flex items-center gap-2">
                         <Shield className="text-indigo-400" size={28} />
@@ -101,6 +129,14 @@ const UsersPage = () => {
                     </h1>
                     <p className="page-subtitle mt-1">Manage platform users and privileges</p>
                 </div>
+                <button
+                    onClick={() => setShowModeratorModal(true)}
+                    className="btn btn-primary flex items-center gap-2"
+                    style={{ padding: '0.5rem 1rem', width: 'auto', minHeight: 'auto' }}
+                >
+                    <UserPlus size={18} />
+                    <span>Create Moderator</span>
+                </button>
             </header>
 
             <div className="glass-card mb-6 p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -199,6 +235,80 @@ const UsersPage = () => {
                     </div>
                 )}
             </div>
+            {showModeratorModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '450px' }}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="modal-title m-0">Create Moderator Account</h3>
+                            <button onClick={() => setShowModeratorModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-6">Create a new moderator account with advanced privileges to review and manage reported content.</p>
+
+                        <form onSubmit={handleCreateModerator} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="input-field"
+                                    placeholder="Moderator Name"
+                                    value={modName}
+                                    onChange={(e) => setModName(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="input-field"
+                                    placeholder="moderator@example.com"
+                                    value={modEmail}
+                                    onChange={(e) => setModEmail(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Initial Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    minLength={8}
+                                    className="input-field"
+                                    placeholder="Minimum 8 characters"
+                                    value={modPassword}
+                                    onChange={(e) => setModPassword(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex gap-3 justify-end mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModeratorModal(false)}
+                                    className="btn btn-outline"
+                                    disabled={modCreating}
+                                    style={{ width: 'auto', padding: '0.6rem 1.2rem' }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={modCreating}
+                                    style={{ width: 'auto', padding: '0.6rem 1.2rem' }}
+                                >
+                                    {modCreating ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        'Create Account'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -57,12 +57,19 @@ const postSchema = new mongoose.Schema({
         comments: { type: Number, default: 0 },
         reposts: { type: Number, default: 0 },
         bookmarks: { type: Number, default: 0 },
-        shares: { type: Number, default: 0 }
+        share: { type: Number, default: 0 }
     },
-    hashtags: [{ 
-        type: String, 
-        lowercase: true, 
-        trim: true 
+    aiToxicityScore: {
+        type: Number,
+        default: 0
+    },
+    moderationReasons: [{
+        type: String
+    }],
+    hashtags: [{
+        type: String,
+        lowercase: true,
+        trim: true
     }]
 }, { timestamps: true });
 
