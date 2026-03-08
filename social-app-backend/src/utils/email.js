@@ -4,11 +4,11 @@ const nodemailer = require('nodemailer');
 // For this application, we will use a test/mock setup or standard SMTP if provided in .env
 const createTransporter = () => {
     return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
-        port: process.env.EMAIL_PORT || 587,
+        host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+        port: process.env.SMTP_PORT || 587,
         auth: {
-            user: process.env.EMAIL_USER || 'ethereal_user',
-            pass: process.env.EMAIL_PASS || 'ethereal_pass'
+            user: process.env.SMTP_USER || 'ethereal_user',
+            pass: process.env.SMTP_PASS || 'ethereal_pass'
         }
     });
 };
