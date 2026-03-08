@@ -79,6 +79,9 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    mfaPin: {
+        type: String, // E.g., '123456'
+    },
     mfaSecret: {
         type: String
     },
@@ -106,5 +109,10 @@ userSchema.pre('save', async function () {
 userSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Performance Indexes for 1M+ rows
+userSchema.index({ name: 1 }, { background: true });
+userSchema.index({ email: 1 }, { background: true });
+userSchema.index({ createdAt: -1 }, { background: true });
 
 module.exports = mongoose.model('User', userSchema);

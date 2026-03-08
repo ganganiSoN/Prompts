@@ -3,8 +3,7 @@ import { Mail, Lock, CheckCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { signupApi, verifyEmailApi, googleLoginApi } from '../../api/auth';
-import { useGoogleLogin } from '@react-oauth/google';
+import { signupApi, verifyEmailApi } from '../../api/auth';
 import { Github } from 'lucide-react';
 
 const SignupPage = () => {
@@ -62,24 +61,12 @@ const SignupPage = () => {
         }
     };
 
-    const handleGoogleLogin = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            setIsSubmitting(true);
-            try {
-                const data = await googleLoginApi(tokenResponse.access_token);
-                if (data.token) {
-                    authenticate(data.user, data.token);
-                    success('Signed up with Google successfully!');
-                    navigate('/');
-                }
-            } catch (err: any) {
-                showError(err.message || 'Google Signup failed');
-            } finally {
-                setIsSubmitting(false);
-            }
-        },
-        onError: () => showError('Google Signup failed'),
-    });
+    const handleGoogleLogin = () => {
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        const redirectUri = `${window.location.origin}/auth/google/callback`;
+        const scope = 'openid email profile';
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${encodeURIComponent(scope)}`;
+    };
 
     const handleGitHubLogin = () => {
         const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
@@ -166,7 +153,7 @@ const SignupPage = () => {
                         <div className="divider">or sign up with</div>
 
                         <div className="social-grid">
-                            <button type="button" className="btn btn-outline" onClick={() => handleGoogleLogin()}>
+                            <button type="button" className="btn btn-outline" onClick={handleGoogleLogin}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />

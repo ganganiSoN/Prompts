@@ -160,20 +160,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
 
                             {!value.mediaUrl ? (
                                 <div className="media-input-container">
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center">
                                         <input
                                             type="url"
                                             placeholder={`Paste ${mediaType} URL here...`}
                                             className="media-input-field flex-1"
+                                            style={{ marginRight: '1rem' }}
                                             autoFocus
                                             onChange={(e) => onChange({ ...value, mediaUrl: e.target.value, mediaType })}
                                         />
-                                        <div className="flex items-center text-gray-500 text-xs font-semibold px-1 uppercase tracking-wider">or</div>
+                                        <div className="flex items-center text-gray-500 text-xs font-semibold mx-4 uppercase tracking-wider" style={{ marginRight: '1rem' }}>or</div>
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
                                             className="btn btn-primary whitespace-nowrap !py-0 !px-4"
-                                            style={{ height: 'auto', borderRadius: '0.75rem' }}
+                                            style={{ marginRight: '1rem', height: 'auto', borderRadius: '0.75rem' }}
                                         >
                                             <Plus size={16} className="mr-1" />
                                             Upload File
@@ -182,6 +183,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                                             type="file"
                                             ref={fileInputRef}
                                             className="hidden"
+                                            style={{ display: 'none' }}
                                             accept={mediaType === 'image' ? 'image/*' : 'video/*'}
                                             onChange={handleFileUpload}
                                         />

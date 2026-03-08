@@ -21,7 +21,7 @@ export const CreatePostPage = () => {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2.5 bg-indigo-50/50 hover:bg-indigo-100 dark:bg-gray-800/50 dark:hover:bg-gray-700/50 rounded-xl transition-all shadow-sm border border-indigo-100/50 dark:border-gray-700/50 text-indigo-600 dark:text-indigo-400 group flex items-center justify-center"
+                        className="icon-btn group"
                         title="Go back"
                     >
                         <ArrowLeft size={22} className="group-hover:-translate-x-1 transition-transform" />

@@ -6,7 +6,6 @@ const axios = require('axios');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_temporary_jwt_secret';
-const MFA_MOCK_REQUIRED = true; // For demonstration, default to requiring MFA if local login
 
 const generateToken = (userId, email, role = 'user') => {
     return jwt.sign({ id: userId, email, role }, JWT_SECRET, {
@@ -70,11 +69,11 @@ exports.login = async (req, res) => {
         }
 
         // MFA Flow
-        if (user.isMfaEnabled || MFA_MOCK_REQUIRED) {
-            // Mock sending MFA code
+        if (user.isMfaEnabled) {
+            // Note: In production you would integrate an SMS/Email service here to dispatch user.mfaPin
             const tempMfaToken = jwt.sign({ id: user._id, pendingMfa: true }, JWT_SECRET, { expiresIn: '5m' });
             return res.json({
-                message: 'MFA code sent',
+                message: 'MFA code required',
                 mfaRequired: true,
                 tempToken: tempMfaToken
             });
@@ -130,9 +129,8 @@ exports.verifyMfa = async (req, res) => {
             return res.status(400).json({ message: 'Invalid token type' });
         }
 
-        // Mock MFA Verification (accepts any 6 digit code for now)
         if (mfaCode.length !== 6) {
-            return res.status(400).json({ message: 'Invalid MFA code' });
+            return res.status(400).json({ message: 'MFA code must be exactly 6 digits' });
         }
 
         const user = await User.findById(decoded.id);
@@ -140,6 +138,12 @@ exports.verifyMfa = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Extremely strict MFA enforcement check!
+        if (user.mfaPin !== mfaCode) {
+            return res.status(400).json({ message: 'Invalid MFA pin code' });
+        }
+
+        // Successful authentication
         const token = generateToken(user._id, user.email, user.role);
         res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
@@ -198,13 +202,32 @@ exports.resetPassword = async (req, res) => {
 
 exports.googleAuth = async (req, res) => {
     try {
-        const { token } = req.body;
-        const ticket = await googleClient.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+        const { code, redirectUri } = req.body;
+
+        // 1. Exchange the Authorization Code for an Access Token
+        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET, // Note: User needs to ensure this is set in .env
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri || `${req.headers.origin}/auth/google/callback` // Use exact frontend string
         });
-        const payload = ticket.getPayload();
-        const { email, name, picture, sub } = payload;
+
+        const accessToken = tokenResponse.data.access_token;
+        if (!accessToken) {
+            return res.status(401).json({ message: 'Failed to retrieve access token from Google' });
+        }
+
+        // 2. Fetch the user's profile from Google's userinfo endpoint
+        const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const { email, name, picture, sub } = response.data;
+
+        if (!email) {
+            return res.status(400).json({ message: 'Google account must have a verified email address' });
+        }
 
         let user = await User.findOne({ email });
         if (!user) {
@@ -224,8 +247,8 @@ exports.googleAuth = async (req, res) => {
         return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
 
     } catch (error) {
-        console.error('Google Auth Error:', error);
-        res.status(401).json({ message: 'Invalid Google Identity token', error: error.message });
+        console.error('Google Auth Error:', error.response?.data || error.message);
+        res.status(401).json({ message: 'Google Authentication failed', details: error.response?.data || error.message });
     }
 };
 
@@ -286,7 +309,7 @@ exports.githubAuth = async (req, res) => {
         return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
 
     } catch (error) {
-        console.error('GitHub Auth Error:', error);
-        res.status(500).json({ message: 'GitHub authentication failed', error: error.message });
+        console.error('GitHub Auth Error:', error.response?.data || error.message);
+        res.status(500).json({ message: 'GitHub authentication failed', details: error.response?.data || error.message });
     }
 };

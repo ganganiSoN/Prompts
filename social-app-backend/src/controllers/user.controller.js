@@ -57,73 +57,57 @@ exports.updateProfile = async (req, res) => {
 exports.getSuggestions = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const currentUser = await User.findById(userId).select('interests');
+        const currentUser = await User.findById(userId).select('interests').lean();
 
         let suggestions = [];
 
         // 1. Try to find users with at least 1 shared interest
         if (currentUser && currentUser.interests && currentUser.interests.length > 0) {
-            const normalizedUserInterests = currentUser.interests.map(i => i.toLowerCase());
+            // Fast indexed point query for users sharing any of the same interests
+            const usersWithInterests = await User.find({
+                _id: { $ne: userId },
+                interests: { $in: currentUser.interests }
+            })
+            .select('name email username src followersCount followingCount bio')
+            .limit(50) // Limit to a small active subset to prevent massive memory payloads
+            .lean();
 
-            suggestions = await User.aggregate([
-                { $match: { $expr: { $ne: [{ $toString: "$_id" }, userId] } } },
-                {
-                    $addFields: {
-                        normalizedInterests: {
-                            $map: {
-                                input: { $ifNull: ["$interests", []] },
-                                as: "interest",
-                                in: { $toLower: "$$interest" }
-                            }
-                        }
-                    }
-                },
-                {
-                    $addFields: {
-                        sharedInterestsCount: {
-                            $size: {
-                                $setIntersection: [
-                                    "$normalizedInterests",
-                                    normalizedUserInterests
-                                ]
-                            }
-                        }
-                    }
-                },
-                { $match: { sharedInterestsCount: { $gt: 0 } } }, // Must have at least one shared interest
-                { $sort: { sharedInterestsCount: -1 } },
-                { $limit: 15 }, // Get top 15 candidates
-                { $sample: { size: 5 } }, // Randomly pick 5 among top so it varies slightly
-                { $project: { password: 0, mfaSecret: 0, resetPasswordToken: 0, resetPasswordExpires: 0 } }
-            ]);
+            // Perform simple JS shuffling and pick 5 instead of DB-level $sample which forces full table scans
+            suggestions = usersWithInterests
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 5)
+                .map(user => {
+                    // Calculate a quick shared count in JS rather than DB projection
+                    const sharedInterests = (user.interests || []).filter(i => currentUser.interests.includes(i));
+                    return { ...user, sharedInterestsCount: sharedInterests.length };
+                });
         }
 
-        // 2. If we have less than 5 suggestions, fill the rest with random users
+        // 2. If we have less than 5 suggestions, fill the rest with fast fallback queries
         if (suggestions.length < 5) {
-            const excludeIdsStr = [userId, ...suggestions.map(s => s._id.toString())];
+            const excludeIds = [userId, ...suggestions.map(s => s._id)];
 
-            const randomSuggestions = await User.aggregate([
-                { $match: { $expr: { $not: { $in: [{ $toString: "$_id" }, excludeIdsStr] } } } },
-                { $sample: { size: 5 - suggestions.length } },
-                {
-                    $addFields: {
-                        sharedInterestsCount: 0 // Mark as 0 shared interests
-                    }
-                },
-                { $project: { password: 0, mfaSecret: 0, resetPasswordToken: 0, resetPasswordExpires: 0 } }
-            ]);
+            const randomFallbacks = await User.find({
+                _id: { $nin: excludeIds }
+            })
+            .select('name email username src followersCount followingCount bio')
+            .limit(10) // Small limit, fast cursor read
+            .lean();
 
-            suggestions = [...suggestions, ...randomSuggestions];
+            const fastRandoms = randomFallbacks
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 5 - suggestions.length)
+                .map(user => ({ ...user, sharedInterestsCount: 0 }));
+
+            suggestions = [...suggestions, ...fastRandoms];
         }
 
-        // Keep highest shared interests at the top
+        // Sort by most shared interests
         suggestions.sort((a, b) => b.sharedInterestsCount - a.sharedInterestsCount);
 
         res.status(200).json(suggestions);
     } catch (error) {
-        console.error('Error fetching user suggestions - Full Stack Trace:');
-        console.error(error.stack);
-        console.error(error.stack);
+        console.error('Error fetching user suggestions:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
@@ -183,9 +167,12 @@ exports.getUsers = async (req, res) => {
         // Build the search query
         const query = { _id: { $ne: req.user.userId } };
         if (search) {
+            // Escape special regex characters
+            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Anchored prefix regex allows MongoDB to use B-Tree indexes efficiently
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { name: { $regex: new RegExp(`^${escapedSearch}`, 'i') } },
+                { email: { $regex: new RegExp(`^${escapedSearch}`, 'i') } }
             ];
         }
 
@@ -199,9 +186,13 @@ exports.getUsers = async (req, res) => {
             .select('-password -mfaSecret -verificationToken') // omit sensitive data
             .sort(sortOptions)
             .skip(skip)
-            .limit(limit);
+            .limit(limit)
+            .lean(); // Vastly improves performance by returning plain JS objects instead of Mongoose Documents
 
-        const totalUsers = await User.countDocuments(query);
+        // Avoid extremely slow full-collection scans unless actively searching
+        const totalUsers = search 
+            ? await User.countDocuments(query) 
+            : await User.estimatedDocumentCount();
 
         res.status(200).json({
             users,

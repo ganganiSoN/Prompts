@@ -49,16 +49,19 @@ io.on('connection', (socket) => {
     socket.on('join_room', (room) => {
         socket.join(room);
     });
-    
+
     socket.on('join_user_room', (userId) => {
         socket.join('user_' + userId);
     });
 });
 
+const seedDefaultUsers = require('./src/utils/seedUsers');
+
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
-    .then(() => {
+    .then(async () => {
         console.log('Connected to MongoDB');
+        await seedDefaultUsers();
         server.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
         });

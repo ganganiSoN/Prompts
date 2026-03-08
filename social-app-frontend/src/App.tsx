@@ -40,6 +40,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/auth/github/callback" element={<OAuthCallback />} />
+      <Route path="/auth/google/callback" element={<OAuthCallback />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route
         path="/"

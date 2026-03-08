@@ -78,11 +78,12 @@ export const resetPasswordApi = async (data: { token: string; newPassword: strin
     return response.json();
 };
 
-export const googleLoginApi = async (token: string) => {
+export const googleLoginApi = async (code: string) => {
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
     const response = await fetch(`${API_URL}/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
+        body: JSON.stringify({ code, redirectUri })
     });
     if (!response.ok) {
         const errorData = await response.json();
