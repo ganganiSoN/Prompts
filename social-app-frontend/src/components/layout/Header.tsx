@@ -28,15 +28,15 @@ const Header = () => {
 
         // Setup socket
         const socket = io('http://localhost:5000');
-        
+
         socket.on('connect', () => {
-             // Assuming user object has id or _id depending on the user model shape
-             socket.emit('join_user_room', (user as any)._id || (user as any).id);
+            // Assuming user object has id or _id depending on the user model shape
+            socket.emit('join_user_room', (user as any)._id || (user as any).id);
         });
 
         socket.on('new_notification', () => {
-             // Let's increment unread count immediately within 1s
-             setUnreadCount(prev => prev + 1);
+            // Let's increment unread count immediately within 1s
+            setUnreadCount(prev => prev + 1);
         });
 
         const handleNotificationRead = () => {
@@ -81,7 +81,7 @@ const Header = () => {
     return (
         <header className="header glass-card">
             <div className="header-search relative">
-                <div className="input-group m-0 search-group">
+                {/* <div className="input-group m-0 search-group">
                     <Search className="input-icon search-icon" size={18} />
                     <input
                         type="text"
@@ -92,8 +92,8 @@ const Header = () => {
                         onFocus={() => setShowResults(true)}
                         onBlur={() => setTimeout(() => setShowResults(false), 200)}
                     />
-                </div>
-                
+                </div> */}
+
                 {showResults && searchQuery.trim().length >= 2 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--surface-color)]/95 backdrop-blur-xl border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in">
                         {isSearching ? (
@@ -103,7 +103,7 @@ const Header = () => {
                         ) : searchResults.length > 0 ? (
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {searchResults.map((result: any) => (
-                                    <div 
+                                    <div
                                         key={result._id}
                                         className="p-3 transition-colors hover:bg-white/5 cursor-pointer border-b border-[var(--border-color)] last:border-0 flex items-center gap-3"
                                         onMouseDown={(e) => {

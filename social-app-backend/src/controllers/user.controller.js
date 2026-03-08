@@ -173,18 +173,24 @@ exports.searchUsers = async (req, res) => {
         }
 
         const escapedSearch = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        // Find users matching name or email substring
-        const users = await User.find({
-            _id: { $ne: req.user.userId },
+
+        const mongoose = require('mongoose');
+        const queryObj = {
             $or: [
                 { name: { $regex: new RegExp(escapedSearch, 'i') } },
                 { email: { $regex: new RegExp(escapedSearch, 'i') } }
             ]
-        })
-        .select('name email avatar bio followersCount role')
-        .limit(10) // Small limit for dropdowns
-        .lean();
+        };
+
+        if (req.user && req.user.userId && mongoose.Types.ObjectId.isValid(req.user.userId)) {
+            queryObj._id = { $ne: req.user.userId };
+        }
+
+        // Find users matching name or email substring
+        const users = await User.find(queryObj)
+            .select('name email avatar bio followersCount role')
+            .limit(10) // Small limit for dropdowns
+            .lean();
 
         res.status(200).json(users);
     } catch (error) {
@@ -246,6 +252,10 @@ exports.getUsers = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
     try {
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid User ID format' });
+        }
         const user = await User.findById(req.params.id).select('-password -mfaSecret -verificationToken');
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json(user);

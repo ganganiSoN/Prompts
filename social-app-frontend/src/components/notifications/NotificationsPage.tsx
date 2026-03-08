@@ -66,6 +66,14 @@ export const NotificationsPage = () => {
             const postId = typeof notif.post === 'string' ? notif.post : notif.post._id;
             console.log('Navigating to Post (fallback):', postId);
             navigate(`/post/${postId}`);
+        } else if (notif.community?._id) {
+            console.log('Navigating to Community:', notif.community._id);
+            navigate(`/community/${notif.community._id}`);
+        } else if (notif.community) {
+            // fallback if community is just string ID
+            const communityId = typeof notif.community === 'string' ? notif.community : notif.community._id;
+            console.log('Navigating to Community (fallback):', communityId);
+            navigate(`/community/${communityId}`);
         }
     };
 
@@ -131,7 +139,7 @@ export const NotificationsPage = () => {
                                 const beforeImg = postTextPreview.substring(0, dataImgIndex);
                                 const afterImg = postTextPreview.substring(dataImgIndex);
                                 const endIndexMatch = afterImg.match(/[\s"<]/);
-                                const endIndex = endIndexMatch ? endIndexMatch.index : afterImg.length;
+                                const endIndex = endIndexMatch && endIndexMatch.index !== undefined ? endIndexMatch.index : afterImg.length;
 
                                 // Extract image and replace base64 string with a placeholder in text
                                 postImageSrc = afterImg.substring(0, endIndex);
@@ -203,7 +211,7 @@ export const NotificationsPage = () => {
                                                 textToShow = notif.message.substring(0, dataImgIndex);
                                                 const afterImg = notif.message.substring(dataImgIndex);
                                                 const endIndexMatch = afterImg.match(/[\s"<]/);
-                                                const endIndex = endIndexMatch ? endIndexMatch.index : afterImg.length;
+                                                const endIndex = endIndexMatch && endIndexMatch.index !== undefined ? endIndexMatch.index : afterImg.length;
                                                 extractedImage = afterImg.substring(0, endIndex);
                                                 textToShow += afterImg.substring(endIndex);
                                             }

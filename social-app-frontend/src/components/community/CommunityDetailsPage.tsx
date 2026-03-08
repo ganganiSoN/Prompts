@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, Shield, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Shield, MessageSquare, Loader2, X } from 'lucide-react';
 import { getCommunityById, toggleJoinCommunity } from '../../api/community';
 import { useAuth } from '../../context/AuthContext';
 import { getFeed } from '../../api/posts';
@@ -20,6 +20,7 @@ const CommunityDetailsPage = () => {
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [isJoined, setIsJoined] = useState(false);
+    const [showMembersModal, setShowMembersModal] = useState(false);
 
     useEffect(() => {
         const fetchCommunity = async () => {
@@ -52,11 +53,34 @@ const CommunityDetailsPage = () => {
     const handleToggleJoin = async () => {
         if (!community || !community._id) return;
 
+        const willJoin = !isJoined;
+        setIsJoined(willJoin);
+
+        let newMembers = [...(community.members || [])];
+        const userIdStr = (user as any)?._id?.toString() || user?.id?.toString();
+
+        if (willJoin) {
+            if (!newMembers.some(m => (m._id || m.id)?.toString() === userIdStr)) {
+                newMembers.push({
+                    _id: (user as any)?._id || user?.id,
+                    name: user?.name,
+                    username: (user as any)?.username,
+                    avatar: (user as any)?.avatar
+                });
+            }
+        } else {
+            newMembers = newMembers.filter((m: any) => {
+                if (!m) return false;
+                const mId = typeof m === 'object' ? (m._id?.toString() || m.id?.toString()) : m.toString();
+                return mId !== userIdStr;
+            });
+        }
+
         // Optimistic UI update
-        setIsJoined(!isJoined);
         setCommunity((prev: any) => ({
             ...prev,
-            memberCount: Math.max(0, isJoined ? (prev.memberCount - 1) : (prev.memberCount + 1))
+            members: newMembers,
+            memberCount: Math.max(0, willJoin ? (prev.memberCount + 1) : (prev.memberCount - 1))
         }));
 
         try {
@@ -64,7 +88,7 @@ const CommunityDetailsPage = () => {
             if (result) {
                 setIsJoined(result.isMember);
                 if (result.community) {
-                    setCommunity({ ...community, ...result.community });
+                    setCommunity((prev: any) => ({ ...prev, memberCount: result.community.memberCount }));
                 }
             }
         } catch (error) {
@@ -137,7 +161,13 @@ const CommunityDetailsPage = () => {
                     </div>
                 </div>
                 <div className="flex gap-4 items-center">
-                    <div className="flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                    <div
+                        className="flex items-center gap-2"
+                        style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: '4px 8px', borderRadius: '8px', transition: 'background 0.2s' }}
+                        onClick={() => setShowMembersModal(true)}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-active)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
                         <Users size={18} />
                         <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{community.memberCount || 0}</span> members
                     </div>
@@ -295,6 +325,61 @@ const CommunityDetailsPage = () => {
                     <div className="divider" style={{ margin: '2rem 0' }}></div>
                     <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '1rem', borderRadius: '0.75rem', color: '#fca5a5', fontSize: '0.875rem' }}>
                         <strong>Note:</strong> Moderators reserve the right to remove any content or revoke membership for users who violate these guidelines.
+                    </div>
+                </div>
+            )}
+
+            {showMembersModal && (
+                <div
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => setShowMembersModal(false)}
+                >
+                    <div
+                        className="glass-card"
+                        style={{ width: '90%', maxWidth: '400px', maxHeight: '80vh', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Community Members</h2>
+                            <button className="icon-btn" onClick={() => setShowMembersModal(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                            {community.members && community.members.length > 0 ? (
+                                community.members.map((m: any, idx: number) => {
+                                    if (!m || typeof m !== 'object') return null;
+                                    return (
+                                        <div
+                                            key={m._id || m.id || idx}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.2s ease', cursor: 'pointer' }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                                                e.currentTarget.style.transform = 'none';
+                                            }}
+                                        >
+                                            <div className="avatar" style={{ width: '42px', height: '42px', background: 'var(--surface-highlight)', color: 'var(--primary)', fontWeight: 'bold', borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {m.avatar ? (
+                                                    <img src={m.avatar} alt={m.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    (m.name || m.username || 'U').substring(0, 2).toUpperCase()
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                                <span style={{ fontWeight: 600, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name || m.username || 'Unknown User'}</span>
+                                                {m.username && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{m.username}</span>}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>No members found.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

@@ -88,12 +88,6 @@ const Sidebar = () => {
         </NavLink>
       </nav>
 
-      <div className="sidebar-footer">
-        <div className="premium-badge">
-          <span className="badge-dot"></span>
-          <span className="badge-text">Pro Member</span>
-        </div>
-      </div>
     </aside>
   );
 };

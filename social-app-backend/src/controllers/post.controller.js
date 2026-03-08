@@ -3,6 +3,7 @@ const Engagement = require('../models/Engagement');
 const User = require('../models/User');
 const Report = require('../models/Report');
 const Notification = require('../models/Notification');
+const Community = require('../models/Community');
 
 // Create a new post
 exports.createPost = async (req, res) => {
@@ -76,14 +77,14 @@ exports.createPost = async (req, res) => {
 
         // --- NEW NOTIFICATION LOGIC ---
         const io = req.app.get('io');
-        
+
         // 1. Mentions
         if (content && typeof content === 'string') {
             const mentions = content.match(/@(\w+)/g);
             if (mentions) {
                 const usernamesStringArray = mentions.map(m => m.substring(1)); // remove @
                 const mentionedUsers = await User.find({ name: { $in: usernamesStringArray } }).select('_id name');
-                
+
                 const mentionPayloads = mentionedUsers
                     .filter(u => u._id.toString() !== userId.toString())
                     .map(u => ({
@@ -113,7 +114,7 @@ exports.createPost = async (req, res) => {
         // 2. Notify Followers about NEW_POST
         if (status === 'PUBLISHED') {
             const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
-            
+
             const followerPayloads = followers.map(f => ({
                 user: f.user,
                 type: 'NEW_POST',
@@ -133,6 +134,36 @@ exports.createPost = async (req, res) => {
                         };
                         io.to('user_' + notif.user.toString()).emit('new_notification', payload);
                     });
+                }
+            }
+        }
+
+        // 3. Notify Community Members about COMMUNITY_POST
+        if (status === 'PUBLISHED' && community && community !== 'General') {
+            const communityDoc = await Community.findOne({ name: community });
+            if (communityDoc) {
+                const membersToNotify = communityDoc.members.filter(m => m && m.toString() !== userId.toString());
+                if (membersToNotify.length > 0) {
+                    const communityPayloads = membersToNotify.map(m => ({
+                        user: m,
+                        type: 'COMMUNITY_POST',
+                        sender: userId,
+                        post: newPost._id,
+                        community: communityDoc._id
+                    }));
+                    const insertedCommunityPosts = await Notification.insertMany(communityPayloads);
+                    if (io) {
+                        const senderUser = await User.findById(userId).select('name avatar');
+                        insertedCommunityPosts.forEach(notif => {
+                            const payload = {
+                                ...notif.toObject(),
+                                sender: senderUser,
+                                post: { _id: newPost._id, content: newPost.content, type: newPost.type },
+                                community: { _id: communityDoc._id, name: communityDoc.name }
+                            };
+                            io.to('user_' + notif.user.toString()).emit('new_notification', payload);
+                        });
+                    }
                 }
             }
         }
@@ -275,24 +306,34 @@ exports.engage = async (req, res) => {
         }
 
         if (type === 'like' || type === 'comment') {
+            let communityId;
+            if (post.community && post.community !== 'General') {
+                const communityDoc = await Community.findOne({ name: post.community }).select('_id');
+                if (communityDoc) {
+                    communityId = communityDoc._id;
+                }
+            }
+
             // Uncomment the following line in production to prevent self-notifications
             // if (post.author.toString() !== userId.toString()) {
-                const notification = new Notification({
-                    user: post.author,
-                    type: type === 'like' ? 'LIKE' : 'COMMENT',
-                    sender: userId,
-                    post: id,
-                    ...(type === 'comment' && { comment: engagement._id })
-                });
-                await notification.save();
-                
-                const io = req.app.get('io');
-                if (io) {
-                    const populatedNotif = await Notification.findById(notification._id)
-                        .populate('sender', 'name avatar')
-                        .populate('post', 'content type');
-                    io.to('user_' + post.author.toString()).emit('new_notification', populatedNotif);
-                }
+            const notification = new Notification({
+                user: post.author,
+                type: type === 'like' ? 'LIKE' : 'COMMENT',
+                sender: userId,
+                post: id,
+                ...(communityId && { community: communityId }),
+                ...(type === 'comment' && { comment: engagement._id })
+            });
+            await notification.save();
+
+            const io = req.app.get('io');
+            if (io) {
+                const populatedNotif = await Notification.findById(notification._id)
+                    .populate('sender', 'name avatar')
+                    .populate('post', 'content type')
+                    .populate('community', 'name');
+                io.to('user_' + post.author.toString()).emit('new_notification', populatedNotif);
+            }
             // }
 
             // 1. Mentions (if comment)
@@ -301,7 +342,7 @@ exports.engage = async (req, res) => {
                 if (mentions) {
                     const usernames = mentions.map(m => m.substring(1));
                     const mentionedUsers = await User.find({ name: { $in: usernames } }).select('_id');
-                    
+
                     const mentionPayloads = mentionedUsers
                         .filter(u => u._id.toString() !== userId.toString())
                         .map(u => ({
@@ -331,7 +372,7 @@ exports.engage = async (req, res) => {
 
             // 2. Notify Followers about Like/Comment
             const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
-            
+
             const followerPayloads = followers.map(f => ({
                 user: f.user,
                 type: type === 'like' ? 'LIKE' : 'COMMENT',

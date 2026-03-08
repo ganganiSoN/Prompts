@@ -1,4 +1,6 @@
 const Community = require('../models/Community');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
 
 // @desc    Create a new community
 // @route   POST /api/communities
@@ -117,6 +119,42 @@ const toggleJoinCommunity = async (req, res) => {
 
         // Since we use a sync pre-save hook for memberCount, just save
         await community.save();
+
+        if (!isMember) {
+            // User just joined, send notification to other existing members
+            try {
+                const io = req.app.get('io');
+                const joiningUser = await User.findById(userId).select('name avatar');
+
+                // Members array includes the newly joined user now (added above)
+                // Filter them out for the notification
+                const membersToNotify = community.members.filter(id => id && id.toString() !== userId.toString());
+
+                if (membersToNotify.length > 0) {
+                    const notifyPayloads = membersToNotify.map(memberId => ({
+                        user: memberId,
+                        type: 'COMMUNITY_JOIN',
+                        sender: userId,
+                        community: community._id
+                    }));
+
+                    const insertedNotifs = await Notification.insertMany(notifyPayloads);
+
+                    if (io) {
+                        insertedNotifs.forEach(notif => {
+                            const payload = {
+                                ...notif.toObject(),
+                                sender: joiningUser,
+                                community: { _id: community._id, name: community.name }
+                            };
+                            io.to('user_' + notif.user.toString()).emit('new_notification', payload);
+                        });
+                    }
+                }
+            } catch (notifError) {
+                console.error('Error sending COMMUNITY_JOIN notification:', notifError);
+            }
+        }
 
         res.json({
             message: isMember ? 'Left community' : 'Joined community',
