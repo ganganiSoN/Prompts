@@ -9,6 +9,7 @@ import { Github } from 'lucide-react';
 const SignupPage = () => {
     const { authenticate } = useAuth();
     const navigate = useNavigate();
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
@@ -21,10 +22,11 @@ const SignupPage = () => {
 
     const handleInitialSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email || !password || !hasAcceptedTerms || !hasVerifiedAge) return;
+        if (!name || !email || !password || !hasAcceptedTerms || !hasVerifiedAge) return;
         setIsSubmitting(true);
         try {
             await signupApi({
+                name,
                 email,
                 password,
                 hasAcceptedTerms,
@@ -85,6 +87,20 @@ const SignupPage = () => {
                 {!isVerificationStep ? (
                     <>
                         <form onSubmit={handleInitialSubmit}>
+                            <div className="input-group">
+                                <label className="input-label" htmlFor="name">Full Name</label>
+                                <svg className="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                <input
+                                    id="name"
+                                    type="text"
+                                    className="input-field"
+                                    placeholder="Your Name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
                             <div className="input-group">
                                 <label className="input-label" htmlFor="email">Email address</label>
                                 <Mail className="input-icon" size={20} />

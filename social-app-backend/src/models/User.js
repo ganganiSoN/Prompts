@@ -112,7 +112,6 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Performance Indexes for 1M+ rows
 userSchema.index({ name: 1 }, { background: true });
-userSchema.index({ email: 1 }, { background: true });
 userSchema.index({ createdAt: -1 }, { background: true });
 
 module.exports = mongoose.model('User', userSchema);

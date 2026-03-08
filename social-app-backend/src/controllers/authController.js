@@ -18,7 +18,7 @@ const generateToken = (userId, email, role = 'user') => {
 
 exports.signup = async (req, res) => {
     try {
-        const { email, password, hasAcceptedTerms, hasVerifiedAge } = req.body;
+        const { name, email, password, hasAcceptedTerms, hasVerifiedAge } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ email });
@@ -30,6 +30,7 @@ exports.signup = async (req, res) => {
         const verificationToken = Math.random().toString(36).substring(2, 15);
 
         user = new User({
+            name,
             email,
             password,
             hasAcceptedTerms,
@@ -40,11 +41,56 @@ exports.signup = async (req, res) => {
 
         await user.save();
 
-        // Mock sending email here...
+        // Check if nodemailer is required at the top, if not, require it locally or globally
+        const nodemailer = require('nodemailer');
 
-        res.status(201).json({
-            message: 'User registered successfully. Please verify your email.',
-            mockVerificationToken: verificationToken // sending it back for testing purposes
+        let transporter;
+        if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || "smtp.gmail.com",
+                port: process.env.SMTP_PORT || 587,
+                secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
+        } else {
+            console.log("No SMTP credentials (SMTP_USER/SMTP_PASS) found in .env. Falling back to Ethereal Email for testing...");
+            const testAccount = await nodemailer.createTestAccount();
+            transporter = nodemailer.createTransport({
+                host: "smtp.ethereal.email",
+                port: 587,
+                secure: false,
+                auth: {
+                    user: testAccount.user,
+                    pass: testAccount.pass
+                }
+            });
+        }
+
+        const mailOptions = {
+            from: '"Social App" <noreply@socialapp.example>',
+            to: user.email,
+            subject: 'Email Verification',
+            text: `Your verification code is: ${verificationToken}`,
+            html: `<p>Your verification code is: <b>${verificationToken}</b></p>`
+        };
+
+        try {
+            const info = await transporter.sendMail(mailOptions);
+            if (!process.env.SMTP_USER) {
+                console.log("Test email sent successfully! View it here: %s", nodemailer.getTestMessageUrl(info));
+            }
+        } catch (mailError) {
+            console.error('Error sending verification email:', mailError);
+            // Optionally, we could continue even if the email failed to send,
+            // or we could fail the signup. We'll just log it for now since we're using mock smtp mostly.
+        }
+
+        return res.status(201).json({
+            message: 'User registered successfully. Please check your email for the verification code.',
+            mockVerificationToken: verificationToken // Keeping this for testing purposes since mail might not be setup
         });
     } catch (error) {
         console.log('error', error);
@@ -342,7 +388,7 @@ exports.changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
         const user = await User.findById(req.user.userId);
-        
+
         if (!user || user.authProvider !== 'local') {
             return res.status(400).json({ message: 'Password change not supported for this account type' });
         }
@@ -364,7 +410,7 @@ exports.changePassword = async (req, res) => {
 exports.setupMfa = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId);
-        
+
         // Generate a new secret
         const secret = speakeasy.generateSecret({
             name: `Social App (${user.email})`
@@ -413,7 +459,7 @@ exports.enableMfa = async (req, res) => {
 exports.disableMfa = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId);
-        
+
         user.isMfaEnabled = false;
         user.mfaSecret = undefined;
         await user.save();

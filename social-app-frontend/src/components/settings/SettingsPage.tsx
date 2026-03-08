@@ -140,41 +140,63 @@ const SettingsPage = () => {
             {/* Change Password Modal */}
             {showPasswordModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="glass-card w-full max-w-md border border-white/10 shadow-2xl relative overflow-hidden animate-slide-up">
-                        <button className="absolute top-4 right-4 text-gray-400 hover:text-white transition" onClick={() => setShowPasswordModal(false)}>
+                    <div className="glass-card w-full max-w-md relative overflow-hidden animate-slide-up">
+                        <button className="absolute top-6 right-6 text-gray-400 hover:text-white transition" onClick={() => setShowPasswordModal(false)}>
                             <XCircle size={24} />
                         </button>
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-200">
-                            <Key className="text-indigo-400" /> Change Password
+
+                        <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-white">
+                            <Key className="text-indigo-400" size={28} /> Change Password
                         </h2>
-                        <form onSubmit={handlePasswordChange} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Current Password</label>
+
+                        <form onSubmit={handlePasswordChange}>
+                            <div className="input-group">
+                                <label className="input-label">Current Password</label>
+                                <Lock className="input-icon" size={20} />
                                 <input
                                     type="password" required
-                                    className="w-full bg-black/30 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                                    className="input-field"
                                     value={passwords.current} onChange={e => setPasswords({ ...passwords, current: e.target.value })}
+                                    placeholder="Enter current password"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">New Password</label>
+
+                            <div className="input-group">
+                                <label className="input-label">New Password</label>
+                                <Lock className="input-icon" size={20} />
                                 <input
                                     type="password" required minLength={6}
-                                    className="w-full bg-black/30 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                                    className="input-field"
                                     value={passwords.new} onChange={e => setPasswords({ ...passwords, new: e.target.value })}
+                                    placeholder="Enter new password"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">Confirm New Password</label>
+
+                            <div className="input-group">
+                                <label className="input-label">Confirm New Password</label>
+                                <Lock className="input-icon" size={20} />
                                 <input
                                     type="password" required minLength={6}
-                                    className="w-full bg-black/30 border border-white/10 rounded-lg p-2.5 text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                                    className="input-field"
                                     value={passwords.confirm} onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
+                                    placeholder="Confirm new password"
                                 />
                             </div>
-                            <div className="flex gap-3 justify-end mt-6">
-                                <button type="button" className="btn btn-outline" onClick={() => setShowPasswordModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" disabled={isSubmittingPassword}>
+
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline flex-1"
+                                    onClick={() => setShowPasswordModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary flex-1"
+                                    disabled={isSubmittingPassword}
+                                >
+                                    <CheckCircle size={20} />
                                     {isSubmittingPassword ? 'Updating...' : 'Update Password'}
                                 </button>
                             </div>

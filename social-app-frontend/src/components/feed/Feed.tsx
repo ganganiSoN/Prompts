@@ -176,11 +176,11 @@ export const Feed: React.FC<FeedProps> = ({ community, followingOnly = true }) =
                     >
                         <div className="suggestion-content">
                             <div className="suggestion-avatar">
-                                {suggestion.name.charAt(0)}
+                                {suggestion.name ? suggestion.name.charAt(0) : '?'}
                             </div>
                             <div className="suggestion-info">
-                                <span className="suggestion-name">{suggestion.name}</span>
-                                <span className="suggestion-fallback">@{suggestion.username || suggestion.name.toLowerCase().replace(/[^a-z0-9]/g, '')}</span>
+                                <span className="suggestion-name">{suggestion.name || 'Unknown User'}</span>
+                                <span className="suggestion-fallback">@{suggestion.username || (suggestion.name ? suggestion.name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'user')}</span>
                             </div>
                         </div>
                         <button

@@ -10,7 +10,7 @@ const auditLogSchema = new mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: ['PASSWORD_CHANGE', 'PROFILE_UPDATE', 'DATA_EXPORT', 'ROLE_CHANGE', 'ACCOUNT_CREATED', 'MODERATOR_CREATED']
+        enum: ['PASSWORD_CHANGE', 'PROFILE_UPDATE', 'DATA_EXPORT', 'ROLE_CHANGE', 'ACCOUNT_CREATED', 'MODERATOR_CREATED', 'VERIFY_EMAIL', 'MFA_VERIFIED', 'RESET_PASSWORD', 'UPDATE_PROFILE', 'UPDATE_ROLE']
     },
     details: {
         type: String

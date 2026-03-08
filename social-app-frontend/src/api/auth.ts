@@ -1,6 +1,6 @@
 const API_URL = 'http://localhost:5000/api/auth';
 
-export const signupApi = async (data: { email: string; password?: string; hasAcceptedTerms: boolean; hasVerifiedAge: boolean }) => {
+export const signupApi = async (data: { name: string; email: string; password?: string; hasAcceptedTerms: boolean; hasVerifiedAge: boolean }) => {
     const response = await fetch(`${API_URL}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
