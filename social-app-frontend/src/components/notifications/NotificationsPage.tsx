@@ -117,10 +117,41 @@ export const NotificationsPage = () => {
                 ) : (
                     notifications.map(notif => {
                         const { icon, text } = getIconInfo(notif.type);
+
+                        // --- Post Image & Text Preview Extraction Logic ---
+                        let postImageSrc = null;
+                        let postTextPreview = '';
+
+                        if (notif.post && notif.post.content) {
+                            postTextPreview = notif.post.content;
+                            const dataImgIndex = postTextPreview.indexOf('data:image');
+
+                            // If raw base64 is in the content
+                            if (dataImgIndex !== -1) {
+                                const beforeImg = postTextPreview.substring(0, dataImgIndex);
+                                const afterImg = postTextPreview.substring(dataImgIndex);
+                                const endIndexMatch = afterImg.match(/[\s"<]/);
+                                const endIndex = endIndexMatch ? endIndexMatch.index : afterImg.length;
+
+                                // Extract image and replace base64 string with a placeholder in text
+                                postImageSrc = afterImg.substring(0, endIndex);
+                                postTextPreview = beforeImg + '[Media Attached] ' + afterImg.substring(endIndex);
+                            } else if (postTextPreview.includes('<img')) {
+                                // Fallback for standard <img> tags
+                                postImageSrc = postTextPreview.match(/<img[^>]+src="([^">]+)"/)?.[1] || null;
+                            }
+
+                            // Clean out any remaining HTML tags for the text preview
+                            postTextPreview = postTextPreview.replace(/<[^>]*>?/gm, ' ').trim();
+                            if (!postTextPreview) postTextPreview = 'Media Content';
+                        }
+                        // ----------------------------------------------------
+
                         return (
                             <div
                                 key={notif._id}
                                 className={`notification-item group relative glass-card p-5 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 ${notif.isRead ? 'opacity-70 bg-surface/40' : 'border-l-4 border-l-primary bg-surface/80 shadow-md shadow-primary/10'}`}
+                                style={{ marginBottom: '1rem' }}
                                 onClick={() => handleNotificationClick(notif)}
                             >
                                 <div className="flex items-start gap-4">
@@ -148,31 +179,58 @@ export const NotificationsPage = () => {
                                             </span>
                                         </div>
 
+                                        {/* Post Text Preview */}
                                         {notif.post && notif.type !== 'FOLLOW' && (
                                             <div className="mt-2 text-sm text-gray-400 border-l-2 border-gray-600 pl-3 italic line-clamp-2" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                                                {notif.post.content?.startsWith('data:image') ? '[Media Attached]' : (notif.post.content?.replace(/<[^>]*>?/gm, '').trim() || 'Media Content')}
+                                                {postTextPreview}
                                             </div>
                                         )}
+
+                                        {/* Comment Preview */}
                                         {notif.comment && (
                                             <div className="mt-2 text-sm text-gray-300 border-l-2 border-primary/50 bg-primary/5 pl-3 py-1.5 rounded-r line-clamp-2">
                                                 {notif.comment.content?.replace(/<[^>]*>?/gm, '').trim() || 'Comment'}
                                             </div>
                                         )}
-                                        {notif.message && (
-                                            <div className="mt-3 text-sm text-red-300 bg-red-500/10 p-2.5 rounded-md border border-red-500/20 font-medium tracking-wide">
-                                                {notif.message?.replace(/<[^>]*>?/gm, '').trim()}
-                                            </div>
-                                        )}
+
+                                        {/* Message Image/Text Extraction */}
+                                        {notif.message && (() => {
+                                            const dataImgIndex = notif.message.indexOf('data:image');
+                                            let textToShow = notif.message;
+                                            let extractedImage = null;
+
+                                            if (dataImgIndex !== -1) {
+                                                textToShow = notif.message.substring(0, dataImgIndex);
+                                                const afterImg = notif.message.substring(dataImgIndex);
+                                                const endIndexMatch = afterImg.match(/[\s"<]/);
+                                                const endIndex = endIndexMatch ? endIndexMatch.index : afterImg.length;
+                                                extractedImage = afterImg.substring(0, endIndex);
+                                                textToShow += afterImg.substring(endIndex);
+                                            }
+
+                                            textToShow = textToShow.replace(/<[^>]*>?/gm, ' ').trim();
+
+                                            return (
+                                                <div className="mt-3 text-sm text-red-300 bg-red-500/10 p-2.5 rounded-md border border-red-500/20 font-medium tracking-wide" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                                    {textToShow}
+                                                    {extractedImage && (
+                                                        <div className="mt-2">
+                                                            <img src={extractedImage} alt="Attached Media" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px', backgroundColor: 'rgba(0,0,0,0.2)' }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
-                                    {/* Thumbnail Extraction (Strictly Sized) */}
-                                    {notif.post?.content?.includes('<img') && (
+                                    {/* Thumbnail Extraction (Now Supports Base64 Images) */}
+                                    {postImageSrc && (
                                         <div
                                             className="ml-3 flex-shrink-0 flex items-center justify-center bg-gray-900 rounded-md border border-white/10 overflow-hidden shadow-lg"
                                             style={{ width: '48px', height: '48px', minWidth: '48px' }}
                                         >
                                             <img
-                                                src={notif.post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
+                                                src={postImageSrc}
                                                 alt="thumb"
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             />
