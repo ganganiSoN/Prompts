@@ -61,6 +61,19 @@ export const getUsers = async (page = 1, limit = 10, search = '', sort = 'create
     return response.json();
 };
 
+export const createModerator = async (data: { email: string; name: string; password?: string }) => {
+    const response = await fetch(`${API_URL}/moderator`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create moderator');
+    }
+    return response.json();
+};
+
 export const getUserById = async (id: string) => {
     const response = await fetch(`${API_URL}/${id}`, {
         method: 'GET',

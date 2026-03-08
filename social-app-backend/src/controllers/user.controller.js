@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Engagement = require('../models/Engagement');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -120,6 +121,49 @@ exports.getSuggestions = async (req, res) => {
         console.error('Error fetching user suggestions - Full Stack Trace:');
         console.error(error.stack);
         console.error(error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.createModerator = async (req, res) => {
+    try {
+        const { email, name, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newModerator = new User({
+            email,
+            name,
+            password: hashedPassword,
+            role: 'moderator',
+            hasAcceptedTerms: true,
+            hasVerifiedAge: true,
+            isEmailVerified: true // Assuming admins verify them inherently
+        });
+
+        await newModerator.save();
+
+        res.status(201).json({
+            message: 'Moderator created successfully',
+            user: {
+                id: newModerator._id,
+                email: newModerator.email,
+                name: newModerator.name,
+                role: newModerator.role
+            }
+        });
+    } catch (error) {
+        console.error('Error creating moderator:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

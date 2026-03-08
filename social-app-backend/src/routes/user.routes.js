@@ -6,6 +6,9 @@ const { verifyToken, authorizeRoles } = require('../middleware/auth.middleware')
 // GET /api/users - Get all users (Admin only)
 router.get('/', verifyToken, authorizeRoles('admin'), userController.getUsers);
 
+// POST /api/users/moderator - Create a new moderator (Admin only)
+router.post('/moderator', verifyToken, authorizeRoles('admin'), userController.createModerator);
+
 // GET /api/users/profile - Get current user profile
 router.get('/profile', verifyToken, userController.getProfile);
 
