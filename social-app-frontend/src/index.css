@@ -737,3 +737,86 @@ select.custom-select:focus {
   border-color: var(--primary) !important;
   box-shadow: 0 0 0 2px var(--input-focus) !important;
 }
+
+/* --- PDF Print View Layout Overrides --- */
+@media print {
+
+  /* Hide interactive application chrome */
+  nav,
+  aside,
+  header,
+  .data-tabs,
+  .export-btn-container,
+  .danger-zone,
+  .export-checkbox-list,
+  button {
+    display: none !important;
+  }
+
+  /* Reset body and layout backgrounds */
+  body,
+  .page-container,
+  .main-content {
+    background: white !important;
+    background-image: none !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove glass card styles and replace with standard borders */
+  .glass-card {
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    margin-bottom: 2rem !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Adjust Typography */
+  h1,
+  h2,
+  h3,
+  p,
+  span,
+  td,
+  th {
+    color: black !important;
+  }
+
+  /* Clean up tables */
+  .data-table thead,
+  .data-table th {
+    background: #f3f4f6 !important;
+    color: black !important;
+    border-bottom: 2px solid #000;
+  }
+
+  .data-table td {
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  /* Show only the print area if nested */
+  .print-area {
+    display: block !important;
+    width: 100% !important;
+  }
+}
+
+/* --- NProgress Customization --- */
+#nprogress .bar {
+  background: var(--primary) !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--primary), 0 0 5px var(--primary) !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: var(--primary) !important;
+  border-left-color: var(--primary) !important;
+}

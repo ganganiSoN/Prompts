@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2 } from 'lucide-react';
+import { User, Settings, Activity, Users, Shield, Bookmark, Compass, ShieldAlert, BarChart2, Database } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
@@ -11,6 +11,7 @@ const Sidebar = () => {
     { name: 'Home Feed', path: '/', icon: <Activity size={20} /> },
     { name: 'Explore', path: '/explore', icon: <Compass size={20} /> },
     { name: 'Profile', path: '/profile', icon: <User size={20} /> },
+    { name: 'Data', path: '/data', icon: <Database size={20} /> },
     { name: 'Drafts', path: '/drafts', icon: <Bookmark size={20} /> },
     { name: 'Community', path: '/community', icon: <Users size={20} /> },
   ];

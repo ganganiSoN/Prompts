@@ -77,5 +77,6 @@ postSchema.index({ status: 1, createdAt: -1 });
 postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ status: 1, community: 1, createdAt: -1 }); // Optimized for filtered feed
 postSchema.index({ hashtags: 1, createdAt: -1 }); // Fast hashtag timeline queries
+postSchema.index({ status: 1, 'engagementCount.likes': -1, 'engagementCount.comments': -1, createdAt: -1 }, { background: true }); // Optimized for Explore Trending
 
 module.exports = mongoose.model('Post', postSchema);

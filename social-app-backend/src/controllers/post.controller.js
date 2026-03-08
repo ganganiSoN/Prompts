@@ -668,6 +668,7 @@ exports.getExplore = async (req, res) => {
                 path: 'originalPost',
                 populate: { path: 'author', select: 'email _id name avatar' }
             })
+            .lean() // Vastly improves performance by returning plain JS objects instead of Mongoose Documents
             .exec();
 
         res.status(200).json(posts);

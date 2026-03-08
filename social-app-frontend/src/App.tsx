@@ -24,6 +24,8 @@ import CommunityDetailsPage from './components/community/CommunityDetailsPage';
 import NotificationsPage from './components/notifications/NotificationsPage';
 import PostDetailPage from './components/post/PostDetailPage';
 
+import { DataPage } from './components/data/DataPage';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" />;
@@ -38,6 +40,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/auth/github/callback" element={<OAuthCallback />} />
+      <Route path="/auth/google/callback" element={<OAuthCallback />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route
         path="/"
@@ -53,6 +56,7 @@ const AppRoutes = () => {
         <Route path="drafts" element={<DraftsPage />} />
         <Route path="explore" element={<ExplorePage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="data" element={<DataPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="profile/:id" element={<ProfilePage />} />
         <Route path="profile/edit" element={<EditProfilePage />} />
