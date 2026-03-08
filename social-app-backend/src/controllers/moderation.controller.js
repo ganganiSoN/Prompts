@@ -124,19 +124,37 @@ exports.getUserModerationGrid = async (req, res) => {
         const { userId } = req.params;
         const { minRisk, maxRisk, category, community, status, dateRange } = req.query;
 
-        // 1. Verify user exists
-        const user = await User.findById(userId).select('name email avatar createdAt status');
+        const mongoose = require('mongoose');
+        let user;
+        let targetUserId = userId;
+
+        // 1. Verify user exists (Allow looking up by name/email if not a valid Mongo ObjectId)
+        if (mongoose.Types.ObjectId.isValid(userId)) {
+            user = await User.findById(userId).select('name email username avatar createdAt status');
+        } else {
+            const escapedSearch = userId.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            user = await User.findOne({
+                $or: [
+                    { email: { $regex: new RegExp(escapedSearch, 'i') } },
+                    { username: { $regex: new RegExp(escapedSearch, 'i') } },
+                    { name: { $regex: new RegExp(escapedSearch, 'i') } }
+                ]
+            }).select('name email username avatar createdAt status');
+        }
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        targetUserId = user._id.toString();
+
         // 2. Build the initial match for Post fields
-        const postMatch = { 'postDoc.author': new require('mongoose').Types.ObjectId(userId) };
+        const postMatch = { author: new mongoose.Types.ObjectId(targetUserId) };
         if (community && community !== 'ALL') {
-            postMatch['postDoc.community'] = community;
+            postMatch.community = community;
         }
         if (status && status !== 'ALL') {
-            postMatch['postDoc.status'] = status;
+            postMatch.status = status;
         }
 
         // Date Range Logic
@@ -144,31 +162,25 @@ exports.getUserModerationGrid = async (req, res) => {
             const date = new Date();
             if (dateRange === '7') {
                 date.setDate(date.getDate() - 7);
-                postMatch['postDoc.createdAt'] = { $gte: date };
+                postMatch.createdAt = { $gte: date };
             } else if (dateRange === '30') {
                 date.setDate(date.getDate() - 30);
-                postMatch['postDoc.createdAt'] = { $gte: date };
+                postMatch.createdAt = { $gte: date };
             }
         }
 
-        // 3. Aggregate reports
+        // 3. fetch valid Post IDs FIRST mapping to in-memory lookup map
+        const matchingPosts = await Post.find(postMatch).select('_id content createdAt status').lean();
+        const postIds = matchingPosts.map(p => p._id);
+        const postMap = new Map();
+        matchingPosts.forEach(p => postMap.set(p._id.toString(), p));
+
+        // 4. Aggregate reports only for the posts we found
         const aggregatedReports = await Report.aggregate([
-            {
-                $lookup: {
-                    from: 'posts',
-                    localField: 'post',
-                    foreignField: '_id',
-                    as: 'postDoc'
-                }
-            },
-            { $unwind: '$postDoc' },
-            { $match: postMatch },
+            { $match: { post: { $in: postIds } } },
             {
                 $group: {
                     _id: '$post',
-                    postContent: { $first: '$postDoc.content' },
-                    postCreatedAt: { $first: '$postDoc.createdAt' },
-                    postStatus: { $first: '$postDoc.status' },
                     reportCount: { $sum: 1 },
                     maxRiskScore: { $max: '$aiToxicityScore' },
                     allReasons: { $push: '$reason' }
@@ -191,11 +203,13 @@ exports.getUserModerationGrid = async (req, res) => {
                 }
             });
 
+            const parentPost = postMap.get(agg._id.toString());
+
             return {
                 postId: agg._id,
-                content: agg.postContent,
-                createdDate: agg.postCreatedAt,
-                status: agg.postStatus,
+                content: parentPost?.content,
+                createdDate: parentPost?.createdAt,
+                status: parentPost?.status,
                 reportCount: agg.reportCount,
                 riskScore: agg.maxRiskScore,
                 category: topReason

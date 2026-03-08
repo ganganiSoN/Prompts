@@ -61,6 +61,18 @@ export const getUsers = async (page = 1, limit = 10, search = '', sort = 'create
     return response.json();
 };
 
+export const searchUsers = async (query: string) => {
+    const response = await fetch(`${API_URL}/search?query=${encodeURIComponent(query)}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to search users');
+    }
+    return response.json();
+};
+
 export const createModerator = async (data: { email: string; name: string; password?: string }) => {
     const response = await fetch(`${API_URL}/moderator`, {
         method: 'POST',
