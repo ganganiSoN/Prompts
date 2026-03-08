@@ -189,13 +189,19 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                 </div>
             );
         }
-        if (post.type === 'image' || post.type === 'video') {
+
+        // Determine if we should treat this as a media post (safety check for bad data types)
+        const hasMediaUrl = post.content?.includes('data:image') || post.content?.includes('data:video') || post.content?.includes('http');
+        const treatAsMedia = post.type === 'image' || post.type === 'video' || (post.type === 'text' && hasMediaUrl);
+
+        if (treatAsMedia) {
             const { mediaUrl, textContent } = parsedMedia;
+            const fallbackType = post.content?.includes('data:video') ? 'video' : 'image';
 
             return (
                 <div className="mt-3">
                     {textContent && <div className="text-gray-800 dark:text-gray-100 mb-3 whitespace-pre-wrap rich-text-content" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: textContent }} />}
-                    <MemoizedMediaRenderer type={post.type} mediaUrl={mediaUrl} maxHeightClass="min(65vh, 600px)" />
+                    <MemoizedMediaRenderer type={post.type === 'text' ? fallbackType : post.type} mediaUrl={mediaUrl} maxHeightClass="min(65vh, 600px)" />
                 </div>
             );
         }

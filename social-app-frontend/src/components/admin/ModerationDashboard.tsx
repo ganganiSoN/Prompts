@@ -542,7 +542,13 @@ export const ModerationDashboard = () => {
                                                     </div>
                                                 </div>
                                                 <div className="bg-white dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-800">
-                                                    <div className="text-sm line-clamp-3 overflow-hidden text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: ticket.post?.content || 'No text content available' }} />
+                                                    {ticket.post?.type === 'image' && ticket.post?.content?.startsWith('data:image') || ticket.post?.content?.startsWith('http') ? (
+                                                        <div className="mt-2 text-center">
+                                                            <img src={ticket.post.content} alt="Flagged Media" className="max-h-32 rounded inline-block bg-black/10" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm line-clamp-3 overflow-hidden text-gray-800 dark:text-gray-200" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: ticket.post?.content || 'No text content available' }} />
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -675,7 +681,13 @@ export const ModerationDashboard = () => {
                                                                     @{report.post.author?.name || report.post.author?.email?.split('@')[0]}
                                                                 </span>
                                                             </div>
-                                                            <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 overflow-hidden" dangerouslySetInnerHTML={{ __html: report.post.content }} />
+                                                            {report.post.type === 'image' && report.post.content?.startsWith('data:image') || report.post.content?.startsWith('http') ? (
+                                                                <div className="mt-2">
+                                                                    <img src={report.post.content} alt="Reported Media" className="max-h-32 rounded object-contain bg-black/10" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-sm text-gray-800 dark:text-gray-200 line-clamp-3 overflow-hidden mt-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: report.post.content || '' }} />
+                                                            )}
                                                         </>
                                                     ) : (
                                                         <p className="text-sm text-gray-500 italic">This post has already been fully deleted from the database.</p>

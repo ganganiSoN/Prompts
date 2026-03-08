@@ -241,9 +241,20 @@ export const DataPage: React.FC = () => {
                                                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm border border-indigo-500/30">
                                                             #{idx + 1}
                                                         </div>
-                                                        <div className="overflow-hidden min-w-0">
-                                                            <p className="text-sm text-gray-200 truncate">{post.content || `Media Post (${post.type})`}</p>
-                                                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><Calendar size={10} /> {new Date(post.createdAt).toLocaleDateString()}</p>
+                                                        <div className="overflow-hidden min-w-0 flex items-center gap-3">
+                                                            {(post.type === 'image' || post.content?.startsWith('data:image') || post.content?.startsWith('http')) && post.content ? (
+                                                                <img
+                                                                    src={post.content}
+                                                                    alt="Post Media"
+                                                                    className="w-10 h-10 object-cover rounded border border-white/10 flex-shrink-0 bg-black/20"
+                                                                />
+                                                            ) : null}
+                                                            <div className="overflow-hidden min-w-0">
+                                                                <p className="text-sm text-gray-200 truncate">
+                                                                    {(post.type === 'image' || post.content?.startsWith('data:image')) && post.content ? '[Media Post (image)]' : (post.content || `Media Post (${post.type})`)}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><Calendar size={10} /> {new Date(post.createdAt).toLocaleDateString()}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex-shrink-0 text-right ml-3">

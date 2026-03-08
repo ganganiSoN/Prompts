@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
+const AuditLog = require('../models/AuditLog');
 
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
@@ -111,6 +112,13 @@ exports.verifyEmail = async (req, res) => {
         user.verificationToken = undefined;
         await user.save();
 
+        await new AuditLog({
+            user: user._id,
+            action: 'VERIFY_EMAIL',
+            details: 'User successfully verified their email address',
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+        }).save();
+
         const jwtToken = generateToken(user._id, user.email, user.role);
         res.json({ message: 'Email verified successfully', token: jwtToken });
     } catch (error) {
@@ -146,6 +154,13 @@ exports.verifyMfa = async (req, res) => {
         }
 
         // Successful authentication
+        await new AuditLog({
+            user: user._id,
+            action: 'MFA_VERIFIED',
+            details: 'User successfully passed MFA challenge',
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+        }).save();
+
         const token = generateToken(user._id, user.email, user.role);
         res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
@@ -195,6 +210,13 @@ exports.resetPassword = async (req, res) => {
         user.resetPasswordExpires = undefined;
 
         await user.save();
+
+        await new AuditLog({
+            user: user._id,
+            action: 'RESET_PASSWORD',
+            details: 'User successfully reset their password',
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+        }).save();
 
         res.json({ message: 'Password has been successfully reset' });
     } catch (error) {

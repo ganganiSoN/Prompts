@@ -5,6 +5,9 @@ const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const PDFDocument = require('pdfkit');
+const AccessLog = require('../models/AccessLog');
+const AuditLog = require('../models/AuditLog');
+const Report = require('../models/Report');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -48,6 +51,13 @@ exports.updateProfile = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        await new AuditLog({
+            user: req.user.userId,
+            action: 'UPDATE_PROFILE',
+            details: 'User updated their profile information',
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+        }).save();
+
         res.json({ message: 'Profile updated successfully', user });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -68,9 +78,9 @@ exports.getSuggestions = async (req, res) => {
                 _id: { $ne: userId },
                 interests: { $in: currentUser.interests }
             })
-            .select('name email username src followersCount followingCount bio')
-            .limit(50) // Limit to a small active subset to prevent massive memory payloads
-            .lean();
+                .select('name email username src followersCount followingCount bio')
+                .limit(50) // Limit to a small active subset to prevent massive memory payloads
+                .lean();
 
             // Perform simple JS shuffling and pick 5 instead of DB-level $sample which forces full table scans
             suggestions = usersWithInterests
@@ -90,9 +100,9 @@ exports.getSuggestions = async (req, res) => {
             const randomFallbacks = await User.find({
                 _id: { $nin: excludeIds }
             })
-            .select('name email username src followersCount followingCount bio')
-            .limit(10) // Small limit, fast cursor read
-            .lean();
+                .select('name email username src followersCount followingCount bio')
+                .limit(10) // Small limit, fast cursor read
+                .lean();
 
             const fastRandoms = randomFallbacks
                 .sort(() => 0.5 - Math.random())
@@ -190,8 +200,8 @@ exports.getUsers = async (req, res) => {
             .lean(); // Vastly improves performance by returning plain JS objects instead of Mongoose Documents
 
         // Avoid extremely slow full-collection scans unless actively searching
-        const totalUsers = search 
-            ? await User.countDocuments(query) 
+        const totalUsers = search
+            ? await User.countDocuments(query)
             : await User.estimatedDocumentCount();
 
         res.status(200).json({
@@ -225,6 +235,14 @@ exports.updateUserRole = async (req, res) => {
 
         const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
         if (!user) return res.status(404).json({ message: 'User not found' });
+
+        await new AuditLog({
+            user: req.user.userId,
+            action: 'UPDATE_ROLE',
+            details: `Updated role of user ${user.email} to ${role}`,
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+        }).save();
+
         res.json({ message: 'Role updated successfully', user });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -382,9 +400,7 @@ exports.getUserBookmarks = async (req, res) => {
     }
 };
 
-const AccessLog = require('../models/AccessLog');
-const AuditLog = require('../models/AuditLog');
-const Report = require('../models/Report');
+
 
 exports.getAccessHistory = async (req, res) => {
     try {

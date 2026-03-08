@@ -14,7 +14,7 @@ export const NotificationsPage = () => {
 
     useEffect(() => {
         fetchNotifications();
-        
+
         if (!user) return;
 
         const socket = io('http://localhost:5000');
@@ -118,8 +118,8 @@ export const NotificationsPage = () => {
                     notifications.map(notif => {
                         const { icon, text } = getIconInfo(notif.type);
                         return (
-                            <div 
-                                key={notif._id} 
+                            <div
+                                key={notif._id}
                                 className={`notification-item group relative glass-card p-5 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 ${notif.isRead ? 'opacity-70 bg-surface/40' : 'border-l-4 border-l-primary bg-surface/80 shadow-md shadow-primary/10'}`}
                                 onClick={() => handleNotificationClick(notif)}
                             >
@@ -136,7 +136,7 @@ export const NotificationsPage = () => {
                                             {icon}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex-1 min-w-0 pr-4">
                                         <div className="flex justify-between items-start mb-1">
                                             <p className="text-gray-200 text-[15px] leading-snug">
@@ -147,10 +147,10 @@ export const NotificationsPage = () => {
                                                 {new Date(notif.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
-                                        
+
                                         {notif.post && notif.type !== 'FOLLOW' && (
-                                            <div className="mt-2 text-sm text-gray-400 border-l-2 border-gray-600 pl-3 italic line-clamp-2">
-                                                {notif.post.content?.replace(/<[^>]*>?/gm, '').trim() || 'Media Content'}
+                                            <div className="mt-2 text-sm text-gray-400 border-l-2 border-gray-600 pl-3 italic line-clamp-2" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                                {notif.post.content?.startsWith('data:image') ? '[Media Attached]' : (notif.post.content?.replace(/<[^>]*>?/gm, '').trim() || 'Media Content')}
                                             </div>
                                         )}
                                         {notif.comment && (
@@ -164,17 +164,17 @@ export const NotificationsPage = () => {
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     {/* Thumbnail Extraction (Strictly Sized) */}
                                     {notif.post?.content?.includes('<img') && (
-                                        <div 
+                                        <div
                                             className="ml-3 flex-shrink-0 flex items-center justify-center bg-gray-900 rounded-md border border-white/10 overflow-hidden shadow-lg"
                                             style={{ width: '48px', height: '48px', minWidth: '48px' }}
                                         >
-                                            <img 
-                                                src={notif.post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''} 
-                                                alt="thumb" 
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                            <img
+                                                src={notif.post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
+                                                alt="thumb"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             />
                                         </div>
                                     )}
