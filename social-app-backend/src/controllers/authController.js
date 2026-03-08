@@ -3,6 +3,8 @@ const User = require('../models/User');
 const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
 
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_temporary_jwt_secret';
@@ -311,5 +313,91 @@ exports.githubAuth = async (req, res) => {
     } catch (error) {
         console.error('GitHub Auth Error:', error.response?.data || error.message);
         res.status(500).json({ message: 'GitHub authentication failed', details: error.response?.data || error.message });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(req.user.userId);
+        
+        if (!user || user.authProvider !== 'local') {
+            return res.status(400).json({ message: 'Password change not supported for this account type' });
+        }
+
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Incorrect current password' });
+        }
+
+        user.password = newPassword;
+        await user.save(); // pre-save hook handles hashing
+
+        res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.setupMfa = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        
+        // Generate a new secret
+        const secret = speakeasy.generateSecret({
+            name: `Social App (${user.email})`
+        });
+
+        // Generate QR code
+        const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+
+        // Store temporarily (not fully enabled until verified)
+        user.mfaSecret = secret.base32;
+        await user.save();
+
+        res.json({ qrCodeUrl, secret: secret.base32 });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.enableMfa = async (req, res) => {
+    try {
+        const { token } = req.body;
+        const user = await User.findById(req.user.userId);
+
+        if (!user.mfaSecret) {
+            return res.status(400).json({ message: 'Must setup MFA first' });
+        }
+
+        const verified = speakeasy.totp.verify({
+            secret: user.mfaSecret,
+            encoding: 'base32',
+            token: token
+        });
+
+        if (verified) {
+            user.isMfaEnabled = true;
+            await user.save();
+            res.json({ message: 'MFA enabled successfully' });
+        } else {
+            res.status(400).json({ message: 'Invalid or expired token' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.disableMfa = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId);
+        
+        user.isMfaEnabled = false;
+        user.mfaSecret = undefined;
+        await user.save();
+
+        res.json({ message: 'MFA disabled' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

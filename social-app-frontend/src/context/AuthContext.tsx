@@ -12,6 +12,8 @@ export interface User {
     followersCount?: number;
     followingCount?: number;
     createdAt?: Date | string;
+    authProvider?: 'local' | 'google' | 'github';
+    isMfaEnabled?: boolean;
 }
 
 interface AuthContextType {

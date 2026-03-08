@@ -12,6 +12,13 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/verify-mfa', authController.verifyMfa);
 
+// Protected account management routes
+const { verifyToken } = require('../middleware/auth.middleware');
+router.put('/change-password', verifyToken, authController.changePassword);
+router.post('/mfa/setup', verifyToken, authController.setupMfa);
+router.post('/mfa/enable', verifyToken, authController.enableMfa);
+router.post('/mfa/disable', verifyToken, authController.disableMfa);
+
 // OAuth specific routes
 router.post('/google', authController.googleAuth);
 router.post('/github', authController.githubAuth);

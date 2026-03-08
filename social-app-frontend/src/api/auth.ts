@@ -104,3 +104,70 @@ export const githubLoginApi = async (code: string) => {
     }
     return response.json();
 };
+
+const getAuthHeaders = () => {
+    let token = localStorage.getItem('token') || '';
+    if (!token) {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                token = user.token || '';
+            } catch (e) { }
+        }
+    }
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string) => {
+    const response = await fetch(`${API_URL}/change-password`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to change password');
+    }
+    return response.json();
+};
+
+export const setupMfa = async () => {
+    const response = await fetch(`${API_URL}/mfa/setup`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to setup MFA');
+    }
+    return response.json();
+};
+
+export const enableMfa = async (token: string) => {
+    const response = await fetch(`${API_URL}/mfa/enable`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ token })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to enable MFA');
+    }
+    return response.json();
+};
+
+export const disableMfa = async () => {
+    const response = await fetch(`${API_URL}/mfa/disable`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to disable MFA');
+    }
+    return response.json();
+};

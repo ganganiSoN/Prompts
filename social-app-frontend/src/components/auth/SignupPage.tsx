@@ -78,8 +78,8 @@ const SignupPage = () => {
         <div className="auth-container">
             <div className="auth-box glass-card">
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl font-bold">{isVerificationStep ? 'Verify Your Email' : 'Create an Account'}</h2>
-                    <p className="mt-2">{isVerificationStep ? `We sent a code to ${email}` : 'Join our community today'}</p>
+                    <h2 className="text-2xl font-bold text-primary">{isVerificationStep ? 'Verify Your Email' : 'Create an Account'}</h2>
+                    <p className="mt-2 text-muted">{isVerificationStep ? `We sent a code to ${email}` : 'Join our community today'}</p>
                 </div>
 
                 {!isVerificationStep ? (

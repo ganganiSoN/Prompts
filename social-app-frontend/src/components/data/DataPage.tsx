@@ -137,7 +137,7 @@ export const DataPage: React.FC = () => {
                 <>
                     {/* Top Metrics Row */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div className="glass-card stat-card">
+                        <div className="glass-card stat-card" style={{ marginBottom: '1rem' }}>
                             <div className="stat-icon primary">
                                 <Activity size={24} />
                             </div>
@@ -149,7 +149,7 @@ export const DataPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="glass-card stat-card">
+                        <div className="glass-card stat-card" style={{ marginBottom: '1rem' }}>
                             <div className="stat-icon success">
                                 <Users size={24} />
                             </div>
@@ -161,7 +161,7 @@ export const DataPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="glass-card stat-card">
+                        <div className="glass-card stat-card" style={{ marginBottom: '1rem' }}>
                             <div className="stat-icon warning">
                                 <Star size={24} />
                             </div>
@@ -176,7 +176,7 @@ export const DataPage: React.FC = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Follower Growth Chart Area */}
-                        <div className="glass-card chart-card flex flex-col">
+                        <div className="glass-card chart-card flex flex-col" style={{ marginBottom: '1rem' }}>
                             <div className="chart-header">
                                 <h2 className="chart-title text-gray-200">
                                     <TrendingUp className="text-emerald-400" size={20} /> Follower Growth
@@ -219,7 +219,7 @@ export const DataPage: React.FC = () => {
                         </div>
 
                         {/* Top Performing Posts Area */}
-                        <div className="glass-card chart-card flex flex-col">
+                        <div className="glass-card chart-card flex flex-col" style={{ marginBottom: '1rem' }}>
                             <div className="chart-header">
                                 <h2 className="chart-title text-gray-200">
                                     <Star className="text-yellow-400" size={20} /> Top Performing Posts
@@ -335,7 +335,7 @@ export const DataPage: React.FC = () => {
                         </div>
 
                         {/* Danger Zone */}
-                        <div className="danger-zone">
+                        <div className="danger-zone" style={{ marginBottom: '1rem' }}>
                             <h2 className="danger-title">
                                 <ShieldAlert size={22} /> Danger Zone
                             </h2>
@@ -405,7 +405,7 @@ export const DataPage: React.FC = () => {
                     {/* Right Column: Logs */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Audit Logs */}
-                        <div className="glass-card">
+                        <div className="glass-card" style={{ marginBottom: '1rem' }}>
                             <div className="chart-header" style={{ marginBottom: '1rem' }}>
                                 <h2 className="chart-title text-gray-200">
                                     <Shield className="text-indigo-400" size={20} /> Audit Logs
