@@ -84,19 +84,27 @@ exports.createPost = async (req, res) => {
                 const usernamesStringArray = mentions.map(m => m.substring(1)); // remove @
                 const mentionedUsers = await User.find({ name: { $in: usernamesStringArray } }).select('_id name');
                 
-                for (let mentionedUser of mentionedUsers) {
-                    if (mentionedUser._id.toString() !== userId.toString()) {
-                        const mentionNotif = new Notification({
-                            user: mentionedUser._id,
-                            type: 'MENTION',
-                            sender: userId,
-                            post: newPost._id
+                const mentionPayloads = mentionedUsers
+                    .filter(u => u._id.toString() !== userId.toString())
+                    .map(u => ({
+                        user: u._id,
+                        type: 'MENTION',
+                        sender: userId,
+                        post: newPost._id
+                    }));
+
+                if (mentionPayloads.length > 0) {
+                    const insertedMentions = await Notification.insertMany(mentionPayloads);
+                    if (io) {
+                        const senderUser = await User.findById(userId).select('name avatar');
+                        insertedMentions.forEach(notif => {
+                            const payload = {
+                                ...notif.toObject(),
+                                sender: senderUser,
+                                post: { _id: newPost._id, content: newPost.content, type: newPost.type }
+                            };
+                            io.to('user_' + notif.user.toString()).emit('new_notification', payload);
                         });
-                        await mentionNotif.save();
-                        if (io) {
-                            const popNotif = await Notification.findById(mentionNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
-                            io.to('user_' + mentionedUser._id.toString()).emit('new_notification', popNotif);
-                        }
                     }
                 }
             }
@@ -105,17 +113,26 @@ exports.createPost = async (req, res) => {
         // 2. Notify Followers about NEW_POST
         if (status === 'PUBLISHED') {
             const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
-            for (let follower of followers) {
-                const followerNotif = new Notification({
-                    user: follower.user,
-                    type: 'NEW_POST',
-                    sender: userId,
-                    post: newPost._id
-                });
-                await followerNotif.save();
+            
+            const followerPayloads = followers.map(f => ({
+                user: f.user,
+                type: 'NEW_POST',
+                sender: userId,
+                post: newPost._id
+            }));
+
+            if (followerPayloads.length > 0) {
+                const insertedFollowers = await Notification.insertMany(followerPayloads);
                 if (io) {
-                    const popFollowNotif = await Notification.findById(followerNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
-                    io.to('user_' + follower.user.toString()).emit('new_notification', popFollowNotif);
+                    const senderUser = await User.findById(userId).select('name avatar');
+                    insertedFollowers.forEach(notif => {
+                        const payload = {
+                            ...notif.toObject(),
+                            sender: senderUser,
+                            post: { _id: newPost._id, content: newPost.content, type: newPost.type }
+                        };
+                        io.to('user_' + notif.user.toString()).emit('new_notification', payload);
+                    });
                 }
             }
         }
@@ -284,20 +301,29 @@ exports.engage = async (req, res) => {
                 if (mentions) {
                     const usernames = mentions.map(m => m.substring(1));
                     const mentionedUsers = await User.find({ name: { $in: usernames } }).select('_id');
-                    for (let mUser of mentionedUsers) {
-                        if (mUser._id.toString() !== userId.toString()) {
-                            const mNotif = new Notification({
-                                user: mUser._id,
-                                type: 'MENTION',
-                                sender: userId,
-                                post: id,
-                                comment: engagement._id
+                    
+                    const mentionPayloads = mentionedUsers
+                        .filter(u => u._id.toString() !== userId.toString())
+                        .map(u => ({
+                            user: u._id,
+                            type: 'MENTION',
+                            sender: userId,
+                            post: id,
+                            comment: engagement._id
+                        }));
+
+                    if (mentionPayloads.length > 0) {
+                        const insertedMentions = await Notification.insertMany(mentionPayloads);
+                        if (io) {
+                            const senderUser = await User.findById(userId).select('name avatar');
+                            insertedMentions.forEach(notif => {
+                                const payload = {
+                                    ...notif.toObject(),
+                                    sender: senderUser,
+                                    post: { _id: post._id, content: post.content, type: post.type }
+                                };
+                                io.to('user_' + notif.user.toString()).emit('new_notification', payload);
                             });
-                            await mNotif.save();
-                            if (io) {
-                                const popMNotif = await Notification.findById(mNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
-                                io.to('user_' + mUser._id.toString()).emit('new_notification', popMNotif);
-                            }
                         }
                     }
                 }
@@ -305,18 +331,27 @@ exports.engage = async (req, res) => {
 
             // 2. Notify Followers about Like/Comment
             const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
-            for (let follower of followers) {
-                const fNotif = new Notification({
-                    user: follower.user,
-                    type: type === 'like' ? 'LIKE' : 'COMMENT',
-                    sender: userId,
-                    post: id,
-                    ...(type === 'comment' && { comment: engagement._id })
-                });
-                await fNotif.save();
+            
+            const followerPayloads = followers.map(f => ({
+                user: f.user,
+                type: type === 'like' ? 'LIKE' : 'COMMENT',
+                sender: userId,
+                post: id,
+                ...(type === 'comment' && { comment: engagement._id })
+            }));
+
+            if (followerPayloads.length > 0) {
+                const insertedFollowers = await Notification.insertMany(followerPayloads);
                 if (io) {
-                    const popFNotif = await Notification.findById(fNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
-                    io.to('user_' + follower.user.toString()).emit('new_notification', popFNotif);
+                    const senderUser = await User.findById(userId).select('name avatar');
+                    insertedFollowers.forEach(notif => {
+                        const payload = {
+                            ...notif.toObject(),
+                            sender: senderUser,
+                            post: { _id: post._id, content: post.content, type: post.type }
+                        };
+                        io.to('user_' + notif.user.toString()).emit('new_notification', payload);
+                    });
                 }
             }
         }

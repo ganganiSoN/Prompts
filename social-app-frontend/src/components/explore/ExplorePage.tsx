@@ -166,7 +166,7 @@ export const ExplorePage = () => {
             </header>
 
             {/* Premium Search Bar */}
-            <div className="glass-card" style={{ padding: '0.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', top: '5rem', zIndex: 40 }}>
+            <div className="glass-card" style={{ padding: '0.75rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', top: '5rem', zIndex: 100 }}>
                 <div style={{ color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
                     <Search size={22} style={{ color: '#c084fc' }} />
                 </div>
@@ -210,7 +210,7 @@ export const ExplorePage = () => {
 
                 {/* Recent Searches Overlay Component */}
                 {isSearchFocused && !searchQuery && recentSearches.length > 0 && (
-                    <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem', padding: 0, zIndex: 50, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+                    <div className="glass-card" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '0.5rem', padding: 0, zIndex: 100, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
                         <div style={{ padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#c084fc', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
                                 <Clock size={14} /> Recent Searches
@@ -263,6 +263,7 @@ export const ExplorePage = () => {
                 <div
                     className="glass-card"
                     style={{
+                        opacity: 1,
                         marginBottom: '2rem', marginTop: '-0.5rem', zIndex: 10, padding: '1.5rem',
                         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem',
                         animation: 'fadeIn 0.3s ease-out', position: 'relative', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',

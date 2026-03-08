@@ -165,6 +165,34 @@ exports.createModerator = async (req, res) => {
     }
 };
 
+exports.searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query || query.trim().length === 0) {
+            return res.status(200).json([]);
+        }
+
+        const escapedSearch = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // Find users matching name or email substring
+        const users = await User.find({
+            _id: { $ne: req.user.userId },
+            $or: [
+                { name: { $regex: new RegExp(escapedSearch, 'i') } },
+                { email: { $regex: new RegExp(escapedSearch, 'i') } }
+            ]
+        })
+        .select('name email avatar bio followersCount role')
+        .limit(10) // Small limit for dropdowns
+        .lean();
+
+        res.status(200).json(users);
+    } catch (error) {
+        console.error('Error searching users:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
 exports.getUsers = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -179,10 +207,10 @@ exports.getUsers = async (req, res) => {
         if (search) {
             // Escape special regex characters
             const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Anchored prefix regex allows MongoDB to use B-Tree indexes efficiently
+            // Remove the ^ anchor to allow substring matching (e.g. searching "Smith" finds "John Smith")
             query.$or = [
-                { name: { $regex: new RegExp(`^${escapedSearch}`, 'i') } },
-                { email: { $regex: new RegExp(`^${escapedSearch}`, 'i') } }
+                { name: { $regex: new RegExp(escapedSearch, 'i') } },
+                { email: { $regex: new RegExp(escapedSearch, 'i') } }
             ];
         }
 

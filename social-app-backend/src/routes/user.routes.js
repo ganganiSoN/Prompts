@@ -15,6 +15,9 @@ router.get('/profile', verifyToken, userController.getProfile);
 // PUT /api/users/profile - Update current user profile
 router.put('/profile', verifyToken, userController.updateProfile);
 
+// GET /api/users/search - Search for users globally
+router.get('/search', verifyToken, userController.searchUsers);
+
 // GET /api/users/suggestions - Get random user suggestions
 router.get('/suggestions', verifyToken, userController.getSuggestions);
 
