@@ -80,6 +80,16 @@ exports.login = async (req, res) => {
             });
         }
 
+        // Record successful login access log
+        const AccessLog = require('../models/AccessLog');
+        const accessLog = new AccessLog({
+            user: user._id,
+            ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown',
+            userAgent: req.headers['user-agent'] || 'Unknown',
+            status: 'SUCCESS'
+        });
+        await accessLog.save();
+
         const token = generateToken(user._id, user.email, user.role);
         res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
@@ -195,7 +205,7 @@ exports.googleAuth = async (req, res) => {
         });
         const payload = ticket.getPayload();
         const { email, name, picture, sub } = payload;
-        
+
         let user = await User.findOne({ email });
         if (!user) {
             user = new User({
@@ -209,10 +219,10 @@ exports.googleAuth = async (req, res) => {
             });
             await user.save();
         }
-        
+
         const jwtToken = generateToken(user._id, user.email, user.role);
         return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
-        
+
     } catch (error) {
         console.error('Google Auth Error:', error);
         res.status(401).json({ message: 'Invalid Google Identity token', error: error.message });
@@ -222,7 +232,7 @@ exports.googleAuth = async (req, res) => {
 exports.githubAuth = async (req, res) => {
     try {
         const { code } = req.body;
-        
+
         // 1. Exchange code for access token
         const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
             client_id: process.env.GITHUB_CLIENT_ID,
@@ -231,17 +241,17 @@ exports.githubAuth = async (req, res) => {
         }, {
             headers: { Accept: 'application/json' }
         });
-        
+
         const accessToken = tokenResponse.data.access_token;
         if (!accessToken) {
             return res.status(401).json({ message: 'Failed to retrieve access token from GitHub' });
         }
-        
+
         // 2. Fetch user profile
         const userResponse = await axios.get('https://api.github.com/user', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
-        
+
         // 3. Fetch user emails (if primary email is hidden)
         let email = userResponse.data.email;
         if (!email) {
@@ -251,13 +261,13 @@ exports.githubAuth = async (req, res) => {
             const primaryEmail = emailResponse.data.find((e) => e.primary && e.verified);
             email = primaryEmail ? primaryEmail.email : null;
         }
-        
+
         if (!email) {
             return res.status(400).json({ message: 'GitHub account must have a verified email address' });
         }
-        
+
         const { login, avatar_url } = userResponse.data;
-        
+
         let user = await User.findOne({ email });
         if (!user) {
             user = new User({
@@ -271,10 +281,10 @@ exports.githubAuth = async (req, res) => {
             });
             await user.save();
         }
-        
+
         const jwtToken = generateToken(user._id, user.email, user.role);
         return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
-        
+
     } catch (error) {
         console.error('GitHub Auth Error:', error);
         res.status(500).json({ message: 'GitHub authentication failed', error: error.message });

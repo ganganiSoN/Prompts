@@ -4,6 +4,7 @@ const Engagement = require('../models/Engagement');
 const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
+const PDFDocument = require('pdfkit');
 
 exports.getProfile = async (req, res) => {
     try {
@@ -280,7 +281,7 @@ exports.followUser = async (req, res) => {
             // Adjust counters
             await User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: 1 } });
             await User.findByIdAndUpdate(currentUserId, { $inc: { followingCount: 1 } });
-            
+
             // Generate Follow Notification
             const notification = new Notification({
                 user: targetUserId,
@@ -288,7 +289,7 @@ exports.followUser = async (req, res) => {
                 sender: currentUserId
             });
             await notification.save();
-            
+
             // Emit using Socket.io
             const io = req.app.get('io');
             if (io) {
@@ -387,5 +388,194 @@ exports.getUserBookmarks = async (req, res) => {
     } catch (error) {
         console.error('Error fetching user bookmarks:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+const AccessLog = require('../models/AccessLog');
+const AuditLog = require('../models/AuditLog');
+const Report = require('../models/Report');
+
+exports.getAccessHistory = async (req, res) => {
+    try {
+        const logs = await AccessLog.find({ user: req.user.userId })
+            .sort({ createdAt: -1 })
+            .limit(30)
+            .select('-user -__v');
+        res.status(200).json(logs);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.getAuditLogs = async (req, res) => {
+    try {
+        const logs = await AuditLog.find({ user: req.user.userId })
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .select('-user -__v');
+        res.status(200).json(logs);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.exportData = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { posts, comments, messages, profile, activity, format } = req.query;
+
+        // Safely parse boolean strings from query, defaulting to true if no params provided
+        const hasParams = Object.keys(req.query).length > 0 && !Object.keys(req.query).every(k => k === 'format');
+        const includePosts = hasParams ? posts === 'true' : true;
+        const includeComments = hasParams ? comments === 'true' : true;
+        const includeMessages = hasParams ? messages === 'true' : true;
+        const includeProfile = hasParams ? profile === 'true' : true;
+        const includeActivity = hasParams ? activity === 'true' : true;
+
+        // Return immediately to the user while processing massive aggregations in the background
+        res.status(202).json({ message: 'Data export request has been received. You will receive an email shortly with your requested files.' });
+
+        // Proceed asynchronously
+        (async () => {
+            try {
+                const AuthUser = await User.findById(userId).select('email username');
+                if (!AuthUser || !AuthUser.email) {
+                    console.error('Cannot export data: User or email not found for ID', userId);
+                    return;
+                }
+
+                await new AuditLog({
+                    user: userId,
+                    action: 'DATA_EXPORT',
+                    details: 'Requested selective profile and activity export',
+                    ipAddress: req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown'
+                }).save();
+
+                const exportPayload = {
+                    generatedAt: new Date().toISOString(),
+                };
+
+                if (includeProfile) {
+                    exportPayload.profile = await User.findById(userId).select('-password -__v');
+                }
+
+                if (includePosts) {
+                    exportPayload.postsCreated = await Post.find({ author: userId }).select('-__v');
+                }
+
+                if (includeComments) {
+                    exportPayload.comments = await Engagement.find({ user: userId, type: 'comment' })
+                        .populate('post', 'content')
+                        .select('-__v');
+                }
+
+                if (includeMessages) {
+                    exportPayload.messages = []; // Placeholder until direct messaging is implemented
+                }
+
+                if (includeActivity) {
+                    exportPayload.platformActivity = await Engagement.find({ user: userId, type: { $ne: 'comment' } }).select('-__v');
+                    exportPayload.securityLogs = await AccessLog.find({ user: userId }).select('-__v');
+                }
+
+                // Stringify JSON
+                const jsonString = JSON.stringify(exportPayload, null, 2);
+
+                // Convert JSON metrics to generic flat CSV
+                let csvString = 'Category,Data\n';
+
+                const flattenObj = (obj, parentKey = '') => {
+                    for (let key in obj) {
+                        if (typeof obj[key] === 'object' && obj[key] !== null) {
+                            if (Array.isArray(obj[key])) {
+                                csvString += `${parentKey}${key},"[Array of ${obj[key].length} items]"\n`;
+                            } else {
+                                flattenObj(obj[key], `${parentKey}${key}.`);
+                            }
+                        } else {
+                            const val = String(obj[key]).replace(/"/g, '""');
+                            csvString += `${parentKey}${key},"${val}"\n`;
+                        }
+                    }
+                };
+                flattenObj(exportPayload);
+
+                // Load email tool and dispatch
+                const { sendDataExportEmail } = require('../utils/email');
+
+                let pdfBuffer = null;
+                if (!format || format === 'pdf' || format === 'all') {
+                    pdfBuffer = await new Promise((resolve, reject) => {
+                        try {
+                            const doc = new PDFDocument();
+                            const buffers = [];
+                            doc.on('data', buffers.push.bind(buffers));
+                            doc.on('end', () => {
+                                resolve(Buffer.concat(buffers));
+                            });
+
+                            doc.fontSize(20).text('Social App Data Export', { align: 'center' });
+                            doc.moveDown();
+                            doc.fontSize(12).text(`Generated At: ${exportPayload.generatedAt}`);
+                            doc.moveDown();
+
+                            // Iterate over properties to format them simply for the PDF
+                            doc.fontSize(10);
+                            for (const [key, val] of Object.entries(exportPayload)) {
+                                if (key !== 'generatedAt') {
+                                    doc.font('Helvetica-Bold').text(`${key.toUpperCase()}:`);
+                                    doc.font('Helvetica').text(JSON.stringify(val, null, 2));
+                                    doc.moveDown();
+                                }
+                            }
+
+                            doc.end();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    });
+                }
+
+                await sendDataExportEmail(AuthUser.email, AuthUser.username, jsonString, csvString, pdfBuffer);
+
+            } catch (backgroundError) {
+                console.error('Background Data Export failed:', backgroundError);
+                // In a real application, you might dispatch a failure email here
+            }
+        })();
+
+    } catch (error) {
+        console.error('Data export error:', error);
+        res.status(500).json({ message: 'Server error during data export initialization', error: error.message });
+    }
+};
+
+exports.requestDeletion = async (req, res) => {
+    try {
+        const { password } = req.body;
+        const userId = req.user.userId;
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (user.authProvider === 'local') {
+            if (!password) return res.status(400).json({ message: 'Password is required to delete account' });
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) return res.status(400).json({ message: 'Incorrect password' });
+        }
+
+        await Engagement.deleteMany({ $or: [{ user: userId }, { targetUser: userId }] });
+        await Post.deleteMany({ author: userId });
+        await AccessLog.deleteMany({ user: userId });
+        await AuditLog.deleteMany({ user: userId });
+        await Report.deleteMany({ $or: [{ reporter: userId }, { reportedUser: userId }] });
+        await Notification.deleteMany({ $or: [{ user: userId }, { sender: userId }] });
+
+        await User.findByIdAndDelete(userId);
+
+        res.status(200).json({ message: 'Account and all associated data have been permanently deleted.' });
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({ message: 'Server error during account deletion', error: error.message });
     }
 };

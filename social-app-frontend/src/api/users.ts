@@ -159,3 +159,75 @@ export const getUserBookmarks = async (userId: string, page = 1, limit = 20) => 
     }
     return response.json();
 };
+
+export const getAccessHistory = async () => {
+    const response = await fetch(`${API_URL}/access-history`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch access history');
+    }
+    return response.json();
+};
+
+export const getAuditLogs = async () => {
+    const response = await fetch(`${API_URL}/audit-logs`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch audit logs');
+    }
+    return response.json();
+};
+
+export interface ExportOptions {
+    posts?: boolean;
+    comments?: boolean;
+    messages?: boolean;
+    profile?: boolean;
+    activity?: boolean;
+    format?: string;
+}
+
+export const exportUserData = async (options?: ExportOptions) => {
+    let query = '';
+    if (options) {
+        const params = new URLSearchParams();
+        if (options.posts !== undefined) params.append('posts', String(options.posts));
+        if (options.comments !== undefined) params.append('comments', String(options.comments));
+        if (options.messages !== undefined) params.append('messages', String(options.messages));
+        if (options.profile !== undefined) params.append('profile', String(options.profile));
+        if (options.activity !== undefined) params.append('activity', String(options.activity));
+        if (options.format !== undefined) params.append('format', String(options.format));
+
+        const queryString = params.toString();
+        if (queryString) query = `?${queryString}`;
+    }
+
+    const response = await fetch(`${API_URL}/export${query}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to export user data');
+    }
+    return response.json();
+};
+
+export const deleteAccount = async (password: string) => {
+    const response = await fetch(`${API_URL}/delete-request`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ password })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete account');
+    }
+    return response.json();
+};

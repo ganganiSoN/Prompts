@@ -262,3 +262,226 @@
     background: linear-gradient(to right, #f43f5e, #fb923c);
     border-radius: 9999px;
 }
+
+/* Data Page Specific Styles */
+.data-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.data-tab {
+    padding: 0 1.5rem 0.75rem;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.data-tab:hover {
+    color: var(--text-main);
+}
+
+.data-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+/* Export Checkboxes */
+.export-checkbox-list {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.export-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    transition: color 0.2s;
+    user-select: none;
+}
+
+.export-checkbox-item:hover {
+    color: white;
+}
+
+.export-checkbox-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.export-checkbox-icon.active {
+    color: #818cf8;
+}
+
+.export-checkbox-icon.inactive {
+    color: #64748b;
+}
+
+/* Export Buttons */
+.export-btn-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.export-action-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.export-action-btn .btn-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+}
+
+.export-action-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.export-action-btn.csv:hover {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.5);
+}
+
+.export-action-btn.pdf:hover {
+    background: rgba(244, 63, 94, 0.2);
+    border-color: rgba(244, 63, 94, 0.5);
+}
+
+.btn-icon {
+    color: var(--text-muted);
+}
+
+.danger-zone {
+    background: rgba(69, 10, 10, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.danger-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f87171;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.danger-text {
+    font-size: 0.875rem;
+    color: rgba(252, 165, 165, 0.8);
+    margin-bottom: 1.25rem;
+}
+
+.btn-danger {
+    background: rgba(220, 38, 38, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #fee2e2;
+}
+
+.btn-danger:hover {
+    background: rgba(220, 38, 38, 1);
+}
+
+.danger-modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* Data Tables */
+.data-table-container {
+    padding: 0;
+    overflow: auto;
+    max-height: 250px;
+}
+
+.data-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    position: sticky;
+    top: 0;
+}
+
+.data-th {
+    padding: 0.75rem;
+    font-weight: 500;
+}
+
+.data-tr {
+    transition: background 0.2s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.data-tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.data-td {
+    padding: 0.75rem;
+    color: var(--text-main);
+}
+
+.data-td-muted {
+    padding: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.status-badge {
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.status-success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.status-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}

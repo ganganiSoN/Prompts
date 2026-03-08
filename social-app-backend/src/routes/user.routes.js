@@ -18,6 +18,18 @@ router.put('/profile', verifyToken, userController.updateProfile);
 // GET /api/users/suggestions - Get random user suggestions
 router.get('/suggestions', verifyToken, userController.getSuggestions);
 
+// GET /api/users/export - Export all user data
+router.get('/export', verifyToken, userController.exportData);
+
+// GET /api/users/access-history - Get user access logs
+router.get('/access-history', verifyToken, userController.getAccessHistory);
+
+// GET /api/users/audit-logs - Get user audit logs
+router.get('/audit-logs', verifyToken, userController.getAuditLogs);
+
+// POST /api/users/delete-request - Delete user account
+router.post('/delete-request', verifyToken, userController.requestDeletion);
+
 // GET /api/users/:id - Get a specific user (Public to authenticated users)
 router.get('/:id', verifyToken, userController.getUserById);
 
@@ -40,4 +52,3 @@ router.get('/:id/posts', verifyToken, userController.getUserPosts);
 router.get('/:id/bookmarks', verifyToken, userController.getUserBookmarks);
 
 module.exports = router;
-
