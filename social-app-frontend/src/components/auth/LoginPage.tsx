@@ -3,7 +3,8 @@ import { Mail, Lock, Github, CheckCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginApi, verifyMfaApi } from '../../api/auth';
+import { loginApi, verifyMfaApi, googleLoginApi } from '../../api/auth';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
     const { authenticate } = useAuth();
@@ -38,22 +39,30 @@ const LoginPage = () => {
         }
     };
 
-    const handleOAuthLogin = async (provider: string) => {
-        // Quick mock for implicit testing
-        setIsSubmitting(true);
-        try {
-            const data = await loginApi({ email: `${provider}@example.com`, authProvider: provider });
-            if (data.token) {
-                authenticate(data.user, data.token);
-                success('Logged in successfully!');
-                navigate('/');
+    const handleGoogleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            setIsSubmitting(true);
+            try {
+                const data = await googleLoginApi(tokenResponse.access_token);
+                if (data.token) {
+                    authenticate(data.user, data.token);
+                    success('Logged in with Google successfully!');
+                    navigate('/');
+                }
+            } catch (err: any) {
+                showError(err.message || 'Google Login failed');
+            } finally {
+                setIsSubmitting(false);
             }
-        } catch (err: any) {
-            showError(err.message || 'OAuth Login failed');
-        } finally {
-            setIsSubmitting(false);
-        }
-    }
+        },
+        onError: () => showError('Google Login failed'),
+    });
+
+    const handleGitHubLogin = () => {
+        const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+        const redirectUri = `${window.location.origin}/auth/github/callback`;
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+    };
 
     const handleMfaSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -125,7 +134,7 @@ const LoginPage = () => {
                         <div className="divider">or continue with</div>
 
                         <div className="social-grid">
-                            <button type="button" className="btn btn-outline" onClick={() => handleOAuthLogin('google')}>
+                            <button type="button" className="btn btn-outline" onClick={() => handleGoogleLogin()}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -134,7 +143,7 @@ const LoginPage = () => {
                                 </svg>
                                 Google
                             </button>
-                            <button type="button" className="btn btn-outline" onClick={() => handleOAuthLogin('github')}>
+                            <button type="button" className="btn btn-outline" onClick={handleGitHubLogin}>
                                 <Github size={20} />
                                 GitHub
                             </button>

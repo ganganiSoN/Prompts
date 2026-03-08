@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import LoginPage from './components/auth/LoginPage';
 import SignupPage from './components/auth/SignupPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
+import OAuthCallback from './components/auth/OAuthCallback';
 import MainLayout from './components/layout/MainLayout';
 import ProfilePage from './components/profile/ProfilePage';
 import EditProfilePage from './components/profile/EditProfilePage';
@@ -20,6 +21,8 @@ import UserDetailPage from './components/admin/UserDetailPage';
 import { ModerationDashboard } from './components/admin/ModerationDashboard';
 import CreateCommunityPage from './components/community/CreateCommunityPage';
 import CommunityDetailsPage from './components/community/CommunityDetailsPage';
+import NotificationsPage from './components/notifications/NotificationsPage';
+import PostDetailPage from './components/post/PostDetailPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -34,6 +37,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/auth/github/callback" element={<OAuthCallback />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route
         path="/"
@@ -59,6 +63,8 @@ const AppRoutes = () => {
         <Route path="community" element={<CommunityPage />} />
         <Route path="community/create" element={<CreateCommunityPage />} />
         <Route path="community/:id" element={<CommunityDetailsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="post/:id" element={<PostDetailPage />} />
       </Route>
     </Routes>
   );

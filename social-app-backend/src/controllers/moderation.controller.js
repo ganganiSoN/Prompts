@@ -1,6 +1,7 @@
 const Report = require('../models/Report');
 const Post = require('../models/Post');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // Get all reports (with pagination and filtering)
 exports.getReports = async (req, res) => {
@@ -77,6 +78,36 @@ exports.updateReport = async (req, res) => {
                         break;
                 }
                 await post.save();
+                // --- NOTIFICATIONS FOR MOD ACTIONS ---
+                const io = req.app.get('io');
+                
+                // 1. Notify Author
+                const authorNotif = new Notification({
+                    user: post.author,
+                    type: 'MODERATION',
+                    sender: moderatorId,
+                    post: post._id,
+                    message: `A moderator has reviewed your post and set its status to: ${post.status}. ${moderatorNotes ? 'Notes: ' + moderatorNotes : ''}`
+                });
+                await authorNotif.save();
+                
+                // 2. Notify Reporter
+                const reporterNotif = new Notification({
+                    user: report.reporter,
+                    type: 'REPORT',
+                    sender: moderatorId,
+                    post: post._id,
+                    message: `We have reviewed your report and taken action. Decision: ${decision}. Thank you for helping keep our community safe!`
+                });
+                await reporterNotif.save();
+
+                if (io) {
+                    const popAuthor = await Notification.findById(authorNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                    io.to('user_' + post.author.toString()).emit('new_notification', popAuthor);
+                    
+                    const popReporter = await Notification.findById(reporterNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                    io.to('user_' + report.reporter.toString()).emit('new_notification', popReporter);
+                }
             }
         }
 

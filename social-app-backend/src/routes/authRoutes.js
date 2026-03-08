@@ -12,4 +12,8 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/verify-mfa', authController.verifyMfa);
 
+// OAuth specific routes
+router.post('/google', authController.googleAuth);
+router.post('/github', authController.githubAuth);
+
 module.exports = router;

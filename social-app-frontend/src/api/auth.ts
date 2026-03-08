@@ -77,3 +77,29 @@ export const resetPasswordApi = async (data: { token: string; newPassword: strin
     }
     return response.json();
 };
+
+export const googleLoginApi = async (token: string) => {
+    const response = await fetch(`${API_URL}/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Google login failed');
+    }
+    return response.json();
+};
+
+export const githubLoginApi = async (code: string) => {
+    const response = await fetch(`${API_URL}/github`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'GitHub login failed');
+    }
+    return response.json();
+};

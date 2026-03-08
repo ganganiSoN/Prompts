@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_temporary_jwt_secret';
 const MFA_MOCK_REQUIRED = true; // For demonstration, default to requiring MFA if local login
@@ -49,24 +53,6 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password, authProvider } = req.body;
-
-        // Handle OAuth Login
-        if (authProvider && authProvider !== 'local') {
-            let user = await User.findOne({ email });
-            if (!user) {
-                // Auto-register OAuth users
-                user = new User({
-                    email,
-                    authProvider,
-                    isEmailVerified: true, // Assuming OAuth provider verified it
-                    hasAcceptedTerms: true,
-                    hasVerifiedAge: true
-                });
-                await user.save();
-            }
-            const token = generateToken(user._id, user.email, user.role);
-            return res.json({ token, user: { id: user._id, email: user.email, name: user.name, role: user.role } });
-        }
 
         // Handle Local Login
         const user = await User.findOne({ email });
@@ -197,5 +183,100 @@ exports.resetPassword = async (req, res) => {
         res.json({ message: 'Password has been successfully reset' });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+exports.googleAuth = async (req, res) => {
+    try {
+        const { token } = req.body;
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { email, name, picture, sub } = payload;
+        
+        let user = await User.findOne({ email });
+        if (!user) {
+            user = new User({
+                email,
+                name,
+                authProvider: 'google',
+                isEmailVerified: true,
+                hasAcceptedTerms: true,
+                hasVerifiedAge: true,
+                avatar: picture
+            });
+            await user.save();
+        }
+        
+        const jwtToken = generateToken(user._id, user.email, user.role);
+        return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
+        
+    } catch (error) {
+        console.error('Google Auth Error:', error);
+        res.status(401).json({ message: 'Invalid Google Identity token', error: error.message });
+    }
+};
+
+exports.githubAuth = async (req, res) => {
+    try {
+        const { code } = req.body;
+        
+        // 1. Exchange code for access token
+        const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            code
+        }, {
+            headers: { Accept: 'application/json' }
+        });
+        
+        const accessToken = tokenResponse.data.access_token;
+        if (!accessToken) {
+            return res.status(401).json({ message: 'Failed to retrieve access token from GitHub' });
+        }
+        
+        // 2. Fetch user profile
+        const userResponse = await axios.get('https://api.github.com/user', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        // 3. Fetch user emails (if primary email is hidden)
+        let email = userResponse.data.email;
+        if (!email) {
+            const emailResponse = await axios.get('https://api.github.com/user/emails', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const primaryEmail = emailResponse.data.find((e) => e.primary && e.verified);
+            email = primaryEmail ? primaryEmail.email : null;
+        }
+        
+        if (!email) {
+            return res.status(400).json({ message: 'GitHub account must have a verified email address' });
+        }
+        
+        const { login, avatar_url } = userResponse.data;
+        
+        let user = await User.findOne({ email });
+        if (!user) {
+            user = new User({
+                email,
+                name: login,
+                authProvider: 'github',
+                isEmailVerified: true,
+                hasAcceptedTerms: true,
+                hasVerifiedAge: true,
+                avatar: avatar_url
+            });
+            await user.save();
+        }
+        
+        const jwtToken = generateToken(user._id, user.email, user.role);
+        return res.json({ token: jwtToken, user: { id: user._id, email: user.email, name: user.name, role: user.role, avatar: user.avatar } });
+        
+    } catch (error) {
+        console.error('GitHub Auth Error:', error);
+        res.status(500).json({ message: 'GitHub authentication failed', error: error.message });
     }
 };

@@ -201,3 +201,15 @@ export const getTrendingHashtags = async (limit: number = 10) => {
     }
     return response.json();
 };
+
+export const getPostById = async (postId: string) => {
+    const response = await fetch(`${API_URL}/${postId}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch post');
+    }
+    return response.json();
+};

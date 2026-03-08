@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const Engagement = require('../models/Engagement');
 const User = require('../models/User');
 const Report = require('../models/Report');
+const Notification = require('../models/Notification');
 
 // Create a new post
 exports.createPost = async (req, res) => {
@@ -73,6 +74,53 @@ exports.createPost = async (req, res) => {
         const populatedPost = await Post.findById(newPost._id)
             .populate('author', 'email _id name avatar');
 
+        // --- NEW NOTIFICATION LOGIC ---
+        const io = req.app.get('io');
+        
+        // 1. Mentions
+        if (content && typeof content === 'string') {
+            const mentions = content.match(/@(\w+)/g);
+            if (mentions) {
+                const usernamesStringArray = mentions.map(m => m.substring(1)); // remove @
+                const mentionedUsers = await User.find({ name: { $in: usernamesStringArray } }).select('_id name');
+                
+                for (let mentionedUser of mentionedUsers) {
+                    if (mentionedUser._id.toString() !== userId.toString()) {
+                        const mentionNotif = new Notification({
+                            user: mentionedUser._id,
+                            type: 'MENTION',
+                            sender: userId,
+                            post: newPost._id
+                        });
+                        await mentionNotif.save();
+                        if (io) {
+                            const popNotif = await Notification.findById(mentionNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                            io.to('user_' + mentionedUser._id.toString()).emit('new_notification', popNotif);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Notify Followers about NEW_POST
+        if (status === 'PUBLISHED') {
+            const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
+            for (let follower of followers) {
+                const followerNotif = new Notification({
+                    user: follower.user,
+                    type: 'NEW_POST',
+                    sender: userId,
+                    post: newPost._id
+                });
+                await followerNotif.save();
+                if (io) {
+                    const popFollowNotif = await Notification.findById(followerNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                    io.to('user_' + follower.user.toString()).emit('new_notification', popFollowNotif);
+                }
+            }
+        }
+        // --- END NOTIFICATION LOGIC ---
+
         res.status(201).json(populatedPost);
     } catch (error) {
         console.error('Error creating post:', error);
@@ -114,6 +162,29 @@ exports.getFeed = async (req, res) => {
         res.status(200).json(posts);
     } catch (error) {
         console.error('Error fetching feed:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// Get Post by ID
+exports.getPostById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const post = await Post.findById(id)
+            .populate('author', 'email _id name avatar')
+            .populate({
+                path: 'originalPost',
+                populate: { path: 'author', select: 'email _id name avatar' }
+            })
+            .exec();
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        res.status(200).json(post);
+    } catch (error) {
+        console.error('Error fetching post by ID:', error);
         res.status(500).json({ message: 'Internal server error', error: error.message });
     }
 };
@@ -184,6 +255,70 @@ exports.engage = async (req, res) => {
             }
         } else {
             await Post.findByIdAndUpdate(id, { $inc: { [`engagementCount.${type}s`]: 1 } });
+        }
+
+        if (type === 'like' || type === 'comment') {
+            // Uncomment the following line in production to prevent self-notifications
+            // if (post.author.toString() !== userId.toString()) {
+                const notification = new Notification({
+                    user: post.author,
+                    type: type === 'like' ? 'LIKE' : 'COMMENT',
+                    sender: userId,
+                    post: id,
+                    ...(type === 'comment' && { comment: engagement._id })
+                });
+                await notification.save();
+                
+                const io = req.app.get('io');
+                if (io) {
+                    const populatedNotif = await Notification.findById(notification._id)
+                        .populate('sender', 'name avatar')
+                        .populate('post', 'content type');
+                    io.to('user_' + post.author.toString()).emit('new_notification', populatedNotif);
+                }
+            // }
+
+            // 1. Mentions (if comment)
+            if (type === 'comment' && content) {
+                const mentions = content.match(/@(\w+)/g);
+                if (mentions) {
+                    const usernames = mentions.map(m => m.substring(1));
+                    const mentionedUsers = await User.find({ name: { $in: usernames } }).select('_id');
+                    for (let mUser of mentionedUsers) {
+                        if (mUser._id.toString() !== userId.toString()) {
+                            const mNotif = new Notification({
+                                user: mUser._id,
+                                type: 'MENTION',
+                                sender: userId,
+                                post: id,
+                                comment: engagement._id
+                            });
+                            await mNotif.save();
+                            if (io) {
+                                const popMNotif = await Notification.findById(mNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                                io.to('user_' + mUser._id.toString()).emit('new_notification', popMNotif);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Notify Followers about Like/Comment
+            const followers = await Engagement.find({ targetUser: userId, type: 'follow' }).select('user');
+            for (let follower of followers) {
+                const fNotif = new Notification({
+                    user: follower.user,
+                    type: type === 'like' ? 'LIKE' : 'COMMENT',
+                    sender: userId,
+                    post: id,
+                    ...(type === 'comment' && { comment: engagement._id })
+                });
+                await fNotif.save();
+                if (io) {
+                    const popFNotif = await Notification.findById(fNotif._id).populate('sender', 'name avatar').populate('post', 'content type');
+                    io.to('user_' + follower.user.toString()).emit('new_notification', popFNotif);
+                }
+            }
         }
 
         res.status(201).json(engagement);
@@ -687,6 +822,40 @@ async function processPostReport(io, postId, reporterId, reason) {
             createdAt: new Date(),
             updatedAt: new Date()
         });
+
+        // Notify all admins and moderators of the new report
+        const modsAndAdmins = await mongoose.connection.db.collection('users').find({ role: { $in: ['admin', 'moderator'] } }).toArray();
+        for (let modUser of modsAndAdmins) {
+            const ModNotification = require('../models/Notification');
+            const modNotification = new ModNotification({
+                user: modUser._id,
+                type: 'REPORT',
+                post: postDoc._id,
+                message: `A new report has been submitted. Reason: ${reason}`,
+                sender: reporterId
+            });
+            await modNotification.save();
+            if (io) {
+                const popModNotif = await ModNotification.findById(modNotification._id).populate('sender', 'name avatar').populate('post', 'content type');
+                io.to('user_' + modUser._id.toString()).emit('new_notification', popModNotif);
+            }
+        }
+
+        // Notify user if post was flagged
+        if (total_toxicity_score > 40) {
+            const ModNotification = require('../models/Notification');
+            const modNotification = new ModNotification({
+                user: postDoc.author,
+                type: 'MODERATION',
+                post: postDoc._id,
+                message: `Your post was flagged by our automated systems with status: ${newStatus}.`
+            });
+            await modNotification.save();
+            if (io) {
+                io.to('user_' + postDoc.author.toString()).emit('new_notification', modNotification);
+            }
+        }
+
 
         // Socket.io Event Emitting
         if (io) {

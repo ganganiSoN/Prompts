@@ -1,5 +1,7 @@
 const User = require('../models/User');
+const Post = require('../models/Post');
 const Engagement = require('../models/Engagement');
+const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
 
 exports.getProfile = async (req, res) => {
@@ -234,6 +236,22 @@ exports.followUser = async (req, res) => {
             // Adjust counters
             await User.findByIdAndUpdate(targetUserId, { $inc: { followersCount: 1 } });
             await User.findByIdAndUpdate(currentUserId, { $inc: { followingCount: 1 } });
+            
+            // Generate Follow Notification
+            const notification = new Notification({
+                user: targetUserId,
+                type: 'FOLLOW',
+                sender: currentUserId
+            });
+            await notification.save();
+            
+            // Emit using Socket.io
+            const io = req.app.get('io');
+            if (io) {
+                const populatedNotif = await Notification.findById(notification._id)
+                    .populate('sender', 'name avatar');
+                io.to('user_' + targetUserId.toString()).emit('new_notification', populatedNotif);
+            }
 
             return res.status(200).json({ message: 'Successfully followed user', isFollowing: true });
         }

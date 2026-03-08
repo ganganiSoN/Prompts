@@ -22,6 +22,7 @@ const postRoutes = require('./src/routes/post.routes');
 const communityRoutes = require('./src/routes/community.routes');
 const moderationRoutes = require('./src/routes/moderation.routes');
 const analyticsRoutes = require('./src/routes/analytics.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -29,6 +30,7 @@ app.use('/api/communities', communityRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 // Initialize Background Jobs
@@ -46,6 +48,10 @@ app.set('io', io);
 io.on('connection', (socket) => {
     socket.on('join_room', (room) => {
         socket.join(room);
+    });
+    
+    socket.on('join_user_room', (userId) => {
+        socket.join('user_' + userId);
     });
 });
 
