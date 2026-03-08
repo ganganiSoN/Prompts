@@ -96,22 +96,22 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
 
     const [editPayload, setEditPayload] = useState<PostPayload>(getInitialEditPayload);
     const [localPoll, setLocalPoll] = useState(post.type === 'poll' ? post.poll : null);
-    
+
     // Memoize the heavy parsing operation so it does not block the UI every re-render
     const parsedMedia = React.useMemo(() => {
         if (post.type !== 'image' && post.type !== 'video') {
             return { mediaUrl: '', textContent: post.content || '' };
         }
-        
+
         const lines = (post.content || '').split('\n').map((l: string) => l.trim()).filter(Boolean);
         const mediaUrlIndex = lines.findIndex((l: string) => l.startsWith('data:') || l.startsWith('http'));
-        
+
         if (mediaUrlIndex !== -1) {
             const url = lines[mediaUrlIndex];
             const text = lines.filter((_: any, idx: number) => idx !== mediaUrlIndex).join('<br />');
             return { mediaUrl: url, textContent: text };
         }
-        
+
         return { mediaUrl: '', textContent: post.content || '' };
     }, [post.content, post.type]);
 
@@ -143,7 +143,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                 <div className="mb-4 mt-2">
                     {post.content && <div className="post-content-area rich-text-content mb-3" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} dangerouslySetInnerHTML={{ __html: post.content }} />}
                     <div className="border border-indigo-100 dark:border-gray-700 rounded-xl p-4 bg-white/50 dark:bg-gray-800/40 shadow-sm cursor-pointer hover:border-indigo-300 dark:hover:border-gray-600 transition-colors">
-                        <div 
+                        <div
                             className="flex items-center gap-2 mb-3 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -177,7 +177,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                                         </div>
                                     );
                                 }
-                                
+
                                 return original.content ? (
                                     <div dangerouslySetInnerHTML={{ __html: original.content }} className="rich-text-content line-clamp-5" />
                                 ) : (
@@ -411,7 +411,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
             )}
 
             <div className="post-header">
-                <div 
+                <div
                     className="post-author-info cursor-pointer hover:opacity-80 transition-opacity"
                     onClick={(e) => {
                         e.stopPropagation();
@@ -419,12 +419,12 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                     }}
                 >
                     <div className="post-avatar">
-                        {post.author?.email ? post.author.email.charAt(0).toUpperCase() : '?'}
+                        {(post.author?.name || post.author?.email)?.charAt(0).toUpperCase() || '?'}
                     </div>
                     <div className="post-author-details">
                         <div className="post-author-name-row">
                             <h3 className="post-author-name hover:underline">
-                                {post.author?.email?.split('@')[0] || 'Unknown User'}
+                                {post.author?.name || post.author?.email?.split('@')[0] || 'Unknown User'}
                             </h3>
                             {post.community !== 'General' && (
                                 <>
@@ -436,7 +436,7 @@ export const PostCard: React.FC<PostProps> = ({ post }) => {
                             )}
                         </div>
                         <p className="post-author-meta">
-                            @{post.author?.email?.split('@')[0]}
+                            @{post.author?.username || post.author?.email?.split('@')[0] || 'user'}
                             <span>·</span>
                             {displayTime}
                             {post.createdAt !== post.updatedAt && <span className="ml-1 text-[10px] italic">(edited)</span>}
